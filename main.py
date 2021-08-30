@@ -299,6 +299,8 @@ class LoginDetails:
 			self.login_details.data["username"] = username
 			self.login_details.data["password"] = password
 			self.login_details.save()
+			popupMessage("Successful", "Login details saved.")
+			self.t.destroy()
 
 class SendMessageLocations:
 	def __init__(self):
