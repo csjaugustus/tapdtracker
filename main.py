@@ -1,0 +1,510 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import re
+import pyautogui
+import pygetwindow as gw
+import tkinter as tk
+from tkinter import ttk
+import threading
+import json
+import os
+from PIL import Image, ImageTk
+
+def popupMessage(title, message, windowToClose=None):
+	popupWindow = tk.Toplevel()
+	popupWindow.resizable(False, False)
+	popupWindow.title(title)
+	if not windowToClose:
+		close = popupWindow.destroy
+	elif windowToClose == 'all':
+		close = popupWindow.quit
+	else:
+		def close():
+			popupWindow.destroy()
+			windowToClose.destroy()
+	msg = ttk.Label(popupWindow, text=message)
+	ok = ttk.Button(popupWindow, text="Ok", command=close)
+	msg.pack(padx=10, pady=10)
+	ok.pack(padx=10, pady=10)
+
+class ChatWindow:
+	def __init__(self, window_title, coords):
+		self.title = window_title
+		self.x = coords[0]
+		self.y = coords[1]
+
+	def update_status(self):
+		if gw.getWindowsWithTitle(self.title):
+			self.open = True
+		else:
+			self.open = False
+
+	def send(self, msg, times):
+		window = gw.getWindowsWithTitle(self.title)[0]
+		all_windows = gw.getAllWindows()
+
+		for w in all_windows:
+			w.minimize()
+		window.maximize()
+		pyautogui.moveTo(self.x, self.y)
+		pyautogui.click()
+		for i in range(times):
+			pyautogui.write(msg)
+			pyautogui.press('enter')
+		window.minimize()
+
+
+class App(ttk.Frame):
+	def __init__(self, parent):
+		ttk.Frame.__init__(self)
+		self.t = threading.Thread(target=self.track)
+
+		#variables
+		self.pin = tk.BooleanVar(value=False)
+		self.status = tk.StringVar(value="Status: Program not running.")
+		self.output = tk.StringVar(value="No output.")
+
+		#setup widgets
+		self.setup_widgets()
+
+	def initial_check(self):
+		login_details = Database("login_details.json")
+		windows_info = Database("windows_info.json")
+
+		errors = []
+		if not login_details.data:
+			errors.append("Please input login details.")
+		if not any(windows_info.data[name]['activated'] for name in windows_info.data):
+			errors.append("Please have at least one activated window to send messages to.")
+
+		if errors:
+			popupMessage("Error(s)", "\n\n".join(e for e in errors))
+			return False
+
+		self.to_send = []
+		for name, attrs in windows_info.data.items():
+			activated = attrs['activated']
+			if activated:
+				coords = attrs['coords']
+				cw = ChatWindow(name, coords)
+				self.to_send.append(cw)
+		self.username = login_details.data['username']
+		self.password = login_details.data['password']
+		return True
+
+	def start(self):
+		if self.initial_check():
+			self.t.start()
+
+	def setup_widgets(self):
+		self.light_label = tk.Label(self, image=red_light)
+		self.pin_button = ttk.Checkbutton(self, text="Pin", variable=self.pin, style="Switch.TCheckbutton")
+		self.status_label = ttk.Label(self,textvariable=self.status)
+		self.output_label = ttk.Label(self, textvariable=self.output, borderwidth=1, relief="groove")
+		self.start_button = ttk.Button(self, text="Start", command=self.start)
+		self.pb = ttk.Progressbar(self, orient=tk.HORIZONTAL, length=300, mode="indeterminate")
+
+		self.pin_button.bind("<Button-1>", self.pin_window)
+
+		self.light_label.grid(row=0, column=0, sticky=tk.W)
+		self.pin_button.grid(row=0, column=2, sticky=tk.E)
+		self.status_label.grid(row=1, column=0, columnspan=3, padx=20,pady=10)
+		self.output_label.grid(row=2, column=0, columnspan=3, padx=20, pady=10)
+		self.start_button.grid(row=4, column=0, columnspan=3, pady=10)
+
+	def update_to_send(self):
+		#update send list during runtime
+		self.to_send = []
+
+		windows_info = Database("windows_info.json")
+		for name, attrs in windows_info.data.items():
+			activated = attrs['activated']
+			if activated:
+				coords = attrs['coords']
+				cw = ChatWindow(name, coords)
+				self.to_send.append(cw)
+
+	def pin_window(self, event):
+		if not self.pin.get():
+			root.attributes("-topmost", True)
+		else:
+			root.attributes("-topmost", False)
+
+	def change_light(self, colour):
+		if colour == "red":
+			self.light_label.configure(image=red_light)
+			self.light_label.image = red_light
+			self.light_label.grid(row=0, column=0, sticky=tk.W)
+		elif colour == "green":
+			self.light_label.configure(image=green_light)
+			self.light_label.image = green_light
+			self.light_label.grid(row=0, column=0, sticky=tk.W)
+
+	def track(self):
+		self.initial_check()
+
+		def get_count(text):
+			pattern = re.compile("\\d+")
+			return pattern.findall(text)[0]
+
+		self.status.set("Status: Program is running.")
+		self.start_button.config(state=tk.DISABLED)
+
+		self.driver = webdriver.Chrome()
+		self.driver.get("https://www.tapd.cn/43882502")
+		self.driver.minimize_window()
+		
+		self.output.set("Logging in...")
+
+		try:
+			WebDriverWait(self.driver, 10).until(
+				EC.presence_of_element_located((By.ID, "username"))
+			)
+		finally:
+			username_box = self.driver.find_element_by_id("username")
+			password_box = self.driver.find_element_by_id("password_input")
+			username_box.send_keys(self.username)
+			password_box.send_keys(self.password)
+			login_button = self.driver.find_element_by_id("tcloud_login_button")
+			login_button.click()
+			self.output.set("Logged in.")
+
+		try:
+			WebDriverWait(self.driver, 10).until(
+				EC.presence_of_element_located((By.CLASS_NAME, "list-count"))
+			)
+		finally:
+			list_count_el = self.driver.find_element_by_class_name('list-count')
+			initial_count = get_count(list_count_el.text)
+			
+		while True:
+			try:
+				WebDriverWait(self.driver, 10).until(
+					EC.presence_of_element_located((By.CLASS_NAME, "list-count"))
+					)
+			finally:
+				list_count_el = self.driver.find_element_by_class_name('list-count')
+				unclaimed_count = get_count(list_count_el.text)
+
+				#get latest send list
+				self.update_to_send()
+
+				#check which ones are still open
+				for cw in self.to_send:
+					cw.update_status()
+
+				ready = []
+				if not self.to_send:
+					msg = "No target window!"
+				elif not any(cw.open for cw in self.to_send):
+					msg = "No target window open!"
+				else:
+					ready = []
+					for cw in self.to_send:
+						if cw.open:
+							ready.append(cw)
+
+				#change light
+				if ready == self.to_send:
+					self.change_light("green")
+				else:
+					self.change_light("red")
+
+				output = ""
+				if ready:
+					output += f"Windows ready: {', '.join(cw.title for cw in ready)}"
+				else:
+					output += msg
+				output += f"\nInitial count: {initial_count}"
+				output += f"\nCurrent count: {unclaimed_count}"
+				self.output.set(output)
+				self.pb.grid(row=3, column=0, columnspan=3, pady=10)
+				self.pb.start()
+
+				if unclaimed_count != initial_count:
+					if unclaimed_count == "0":
+						for cw in ready:
+							cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.')
+					elif unclaimed_count > initial_count:
+						self.output.set("TAPD has been updated!")
+						for cw in ready:
+							cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 3)
+						self.driver.maximize_window()
+						self.pb.stop()
+						self.status.set("Status: Program has finished.")
+						break
+					else:
+						initial_count = unclaimed_count
+				self.driver.refresh()
+
+class Database:
+	def __init__(self, save_file):
+		self.path = f"files\\{save_file}"
+		self.load()
+
+	def load(self):
+		try:
+			with open(self.path, "r") as f:
+				self.data = json.load(f)
+		except FileNotFoundError:
+			if "files" not in os.listdir():
+				os.mkdir("files")
+			with open(self.path, "w") as f:
+				self.data = {}
+				json.dump(self.data, f)
+
+	def save(self):
+		with open(self.path, "w") as f:
+			json.dump(self.data, f, indent=4)
+
+class LoginDetails:
+	def __init__(self):
+		self.t = tk.Toplevel()
+		self.t.resizable(False, False)
+		self.setup_widgets()
+		self.load()
+
+	def load(self):
+		self.login_details = Database("login_details.json")
+		if self.login_details.data:
+			username = self.login_details.data['username']
+			password = self.login_details.data['password']
+			self.username_entry.insert(0, username)
+			self.password_entry.insert(0, password)
+
+	def setup_widgets(self):
+		self.l = ttk.Label(self.t, text="Login Details")
+		self.username_label = ttk.Label(self.t, text="Username: ")
+		self.password_label = ttk.Label(self.t, text="Password: ")
+		self.username_entry = ttk.Entry(self.t, width=20)
+		self.password_entry = ttk.Entry(self.t, width=20, show="*")
+		self.save_button = ttk.Button(self.t, text="Save", command=self.save)
+
+		self.l.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+		self.username_label.grid(row=1, column=0, padx=10, pady=10)
+		self.username_entry.grid(row=1, column=1, padx=10, pady=10)
+		self.password_label.grid(row=2, column=0, padx=10, pady=10)
+		self.password_entry.grid(row=2, column=1, padx=10, pady=10)
+		self.save_button.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+
+	def save(self):
+		username = self.username_entry.get()
+		password = self.password_entry.get()
+
+		if not (username and password):
+			popupMessage("Error", "Please input all fields.")
+		else:
+			self.login_details.data["username"] = username
+			self.login_details.data["password"] = password
+			self.login_details.save()
+
+class SendMessageLocations:
+	def __init__(self):
+		self.t = tk.Toplevel()
+		self.t.resizable(False, False)
+		self.setup_widgets()
+		self.load()
+
+	def setup_widgets(self):
+		self.l = ttk.Label(self.t , text="Enter window name and coordinates for input box.")
+		self.name_label = ttk.Label(self.t, text="Window Name: ")
+		self.name_entry = ttk.Entry(self.t, width=20)
+		self.x_label = ttk.Label(self.t, text="X: ")
+		self.x_entry = ttk.Entry(self.t, width=5)
+		self.y_label = ttk.Label(self.t, text="Y: ")
+		self.y_entry = ttk.Entry(self.t, width=5)
+		self.save_button = ttk.Button(self.t, text="Save", command=self.save)
+
+		self.l.grid(row=0, column=0, columnspan=4)
+		self.name_label.grid(row=1, column=0, padx=10, pady=10)
+		self.name_entry.grid(row=1, column=1, columnspan=3, padx=10, pady=10)
+		self.x_label.grid(row=2, column=0, padx=10, pady=10)
+		self.x_entry.grid(row=2, column=1, padx=10, pady=10)
+		self.y_label.grid(row=2, column=2, padx=10, pady=10)
+		self.y_entry.grid(row=2, column=3, padx=10, pady=10)
+		self.save_button.grid(row=3, column=0, columnspan=4, padx=10, pady=10)
+
+	def load(self):
+		self.entries = {}
+		self.r = 4
+
+		self.windows_info = Database("windows_info.json")
+		if self.windows_info.data:
+			for name, attrs in self.windows_info.data.items():
+				cb_var = tk.BooleanVar(value=False)
+				cb = ttk.Checkbutton(self.t, text=name, variable=cb_var, style="Switch.TCheckbutton")
+				cb.bind("<Button-1>", self.toggle)
+				del_button = ttk.Button(self.t, text="Delete", command= lambda x=name: self.delete(x))
+
+				#saving references to widgets
+				self.entries[name] = {
+				"cb" : cb,
+				"cb_var" : cb_var,
+				"del_button" : del_button,
+				}
+
+				cb.grid(row=self.r, column=0, columnspan=3, padx=10, pady=10, sticky=tk.W)
+				del_button.grid(row=self.r, column=3, padx=10, pady=10)
+
+				#initial cb state
+				activated = attrs['activated']
+				if activated:
+					cb_var.set(True)
+
+				self.r += 1
+
+	def toggle(self, event):
+		cb = event.widget
+		name = cb.cget("text")
+		activated = self.entries[name]['cb_var'].get()
+
+		if not activated:
+			self.windows_info.data[name]['activated'] = True
+		else:
+			self.windows_info.data[name]['activated'] = False
+		self.windows_info.save()
+
+	def delete(self, name):
+		#destroy widgets
+		self.entries[name]['cb'].destroy()
+		self.entries[name]['del_button'].destroy()
+
+		#update data
+		del self.windows_info.data[name]
+		self.windows_info.save()
+
+	def save(self):
+		name = self.name_entry.get()
+		x_coord = self.x_entry.get()
+		y_coord = self.y_entry.get()
+
+		if not (name and x_coord and y_coord):
+			popupMessage("Error", "Please input all fields.")
+
+		elif not (x_coord.isdigit() and y_coord.isdigit()):
+			popupMessage("Error", "Please only enter numbers for coords fields.")
+
+		else:
+			#save data
+			coords = (int(x_coord), int(y_coord))
+			attrs = {
+			"coords": coords,
+			"activated": False,
+			}
+			self.windows_info.data[name] = attrs
+			self.windows_info.save()
+
+			#add widgets
+			cb_var = tk.BooleanVar(value=False)
+			cb = ttk.Checkbutton(self.t, text=name, variable=cb_var, style="Switch.TCheckbutton")
+			cb.bind("<Button-1>", self.toggle)
+			del_button = ttk.Button(self.t, text="Delete", command= lambda x=name: self.delete(x))
+
+			#saving references to widgets
+			self.entries[name] = {
+			"cb" : cb,
+			"cb_var" : cb_var,
+			"del_button" : del_button,
+			}
+
+			cb.grid(row=self.r, column=0, columnspan=3, padx=10, pady=10, sticky=tk.W)
+			del_button.grid(row=self.r, column=3, padx=10, pady=10)
+			self.r += 1
+
+			#clear input boxes
+			self.name_entry.delete(0, 'end')
+			self.x_entry.delete(0, 'end')
+			self.y_entry.delete(0, 'end')
+
+class ManualSend:
+	def __init__(self):
+		self.t = tk.Toplevel()
+		self.t.resizable(False, False)
+		self.setup_widgets()
+
+	def setup_widgets(self):
+		self.l1 = ttk.Label(self.t, text="Text: ")
+		self.tb = tk.Text(self.t, width=30, height=5)
+		self.l2 = ttk.Label(self.t, text="Times to send: ")
+		self.e = ttk.Entry(self.t, width=10)
+		b = ttk.Button(self.t, text="Send", command=self.send)
+
+		self.l1.grid(row=0, column=0, padx=10, pady=10)
+		self.tb.grid(row=0, column=1, padx=10, pady=10)
+		self.l2.grid(row=1, column=0, padx=10, pady=10)
+		self.e.grid(row=1, column=1, padx=10, pady=10, sticky=tk.W)
+		b.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
+
+	def load(self):
+		self.ready = []
+		windows_info = Database("windows_info.json")
+		for name, attrs in windows_info.data.items():
+			activated = attrs['activated']
+			if activated:
+				coords = attrs['coords']
+				cw = ChatWindow(name, coords)
+				cw.update_status()
+				if cw.open:
+					self.ready.append(cw)
+
+	def send(self):
+		#error checking
+		if not (self.tb.get("1.0", "end") and self.e.get()):
+			popupMessage("Error", "Please input all fields.")
+			return
+
+		def cfm_send():
+			text = self.tb.get("1.0", "end")
+			times = int(self.e.get())
+			for cw in self.ready:
+				cw.send(text, times)
+			self.tb.delete("1.0", "end")
+			self.e.delete(0, "end")
+
+		self.load()
+		names = '\n'.join(wn.title for wn in self.ready)
+		if names:
+			cfm = tk.Toplevel()
+			cfm.resizable(False, False)
+			cfm.title("Confirmation")
+			l = ttk.Label(cfm, text=f"Text will be sent to the following windows:\n{names}")
+			y = ttk.Button(cfm, text="Yes", command=cfm_send)
+			n = ttk.Button(cfm, text="No", command=cfm.destroy)
+
+			l.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+			y.grid(row=1, column=0, padx=10, pady=10)
+			n.grid(row=1, column=1, padx=10, pady=10)
+		else:
+			popupMessage("Error", "No target window found. Activate at least one window.")
+
+root = tk.Tk()
+
+#load r&g lights
+red_light = Image.open("files\\redlight.png")
+red_light = red_light.resize((20, 20))
+red_light = ImageTk.PhotoImage(red_light)
+green_light = Image.open("files\\greenlight.png")
+green_light = green_light.resize((20, 20))
+green_light = ImageTk.PhotoImage(green_light)
+
+root.title("TAPD Tracker")
+root.resizable(False, False)
+icon = tk.PhotoImage(file = "files\\tapdicon.png")
+root.iconphoto(True, icon)
+root.tk.call("source", "sun-valley.tcl")
+root.tk.call("set_theme", "light")
+app = App(root)
+app.pack(fill="both", expand=True)
+
+main_menu = tk.Menu(root)
+root.config(menu=main_menu)
+settings_menu = tk.Menu(main_menu)
+main_menu.add_cascade(label="Settings", menu=settings_menu)
+settings_menu.add_command(label="Change Login Details", command=lambda: LoginDetails())
+settings_menu.add_command(label="Manage Send Message Locations", command= lambda: SendMessageLocations())
+settings_menu.add_command(label="Manual Send", command=lambda: ManualSend())
+
+root.mainloop()
+
