@@ -571,8 +571,6 @@ class AutoClaim:
 
 	def add(self):
 		kw = self.e.get()
-		if kw == "all":
-			kw == ""
 		if not kw:
 			popupMessage("Error", "Please input keyword.")
 			return
