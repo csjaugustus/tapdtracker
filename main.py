@@ -74,6 +74,15 @@ class App(ttk.Frame):
 	def initial_check(self):
 		login_details = Database("login_details.json")
 		windows_info = Database("windows_info.json")
+		auto_claim_info = Database("auto_claim_info.json")
+
+		#initialize auto claim data if empty
+		if not auto_claim_info.data:
+			auto_claim_info.data = {
+			"all_state" : False,
+			"keywords" : [],
+			}
+		auto_claim_info.save()
 
 		errors = []
 		if not login_details.data:
@@ -131,7 +140,11 @@ class App(ttk.Frame):
 	def update_kw_list(self):
 		#updates keyword list during runtime
 		self.auto_claim_info = Database("auto_claim_info.json")
-		self.keywords = list(self.auto_claim_info.data.keys())
+		self.all_state = self.auto_claim_info.data["all_state"]
+		if self.all_state:
+			self.keywords = "all"
+		else:
+			self.keywords = self.auto_claim_info.data["keywords"]
 
 	def pin_window(self, event):
 		if not self.pin.get():
@@ -227,11 +240,13 @@ class App(ttk.Frame):
 				else:
 					output += msg
 				output += f"\nCurrent video count: {unclaimed_count}\n"
-				if self.keywords:
-					kws = ", ".join(kw for kw in self.keywords)
-					output += f"\nWill claim videos with keyword(s): {kws}"
+				if not self.keywords:
+					output += "\nAuto-claim off."
+				elif self.keywords == "all":
+					output += "\nWill auto-claim all videos."
 				else:
-					output += f"\nAuto-claim off."
+					kws = ", ".join(kw for kw in self.keywords)
+					output += f"\nWill auto-claim videos with keyword(s): {kws}"
 				self.output.set(output)
 				self.pb.grid(row=3, column=0, columnspan=3, pady=10)
 				self.pb.start()
@@ -265,9 +280,12 @@ class App(ttk.Frame):
 								if x.text == "待领取":
 									main_box_el = x.find_element_by_xpath("..").find_element_by_xpath("..").find_element_by_xpath("..")
 									found_elements = main_box_el.find_elements_by_class_name("card-name")
-								for e in found_elements:
-									if any(kw in e.text for kw in self.keywords):
-										to_click.append(e)
+								if self.keywords == "all":
+									to_click = [e for e in found_elements]
+								else:
+									for e in found_elements:
+										if any(kw in e.text for kw in self.keywords):
+											to_click.append(e)
 							for e in to_click:
 								e.click()
 								time.sleep(0.25)
@@ -535,7 +553,17 @@ class AutoClaim:
 
 	def load(self):
 		self.auto_claim_info = Database("auto_claim_info.json")
-		self.keywords = list(self.auto_claim_info.data.keys())
+
+		#initialize auto claim data if empty
+		if not self.auto_claim_info.data:
+			self.auto_claim_info.data = {
+			"all_state" : False,
+			"keywords" : [],
+			}
+			self.auto_claim_info.save()
+
+		self.all_state = self.auto_claim_info.data["all_state"]
+		self.keywords = self.auto_claim_info.data["keywords"]
 
 		if self.keywords:
 			for kw in self.keywords:
@@ -553,20 +581,55 @@ class AutoClaim:
 
 				self.r += 1
 
+		if self.all_state:
+			self.pin_var.set(True)
+			
+			self.e.config(state=tk.DISABLED)
+			self.b.config(state=tk.DISABLED)
+			for kw in self.keywords:
+				self.refs[kw]["del_button"].config(state=tk.DISABLED)
+			self.all_state = True
+			self.auto_claim_info.data["all_state"] = True
+			self.auto_claim_info.save()			
+
 	def setup_widgets(self):
+		self.pin_var = tk.BooleanVar(value=False)
+
+		self.pin_button = ttk.Checkbutton(self.t, text="Claim All", variable=self.pin_var, style="Switch.TCheckbutton")
 		self.l = ttk.Label(self.t, text="Claim movies with keyword:")
 		self.e = ttk.Entry(self.t, width=20)
 		self.b = ttk.Button(self.t, text="Add", command=self.add)
 
+		self.pin_button.bind("<Button-1>", self.toggle)
+
+		self.pin_button.grid(row=0, column=0, sticky=tk.E)
 		self.l.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
 		self.e.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
 		self.b.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+
+	def toggle(self, event):
+		if not self.pin_var.get(): #state before press
+			self.e.config(state=tk.DISABLED)
+			self.b.config(state=tk.DISABLED)
+			for kw in self.keywords:
+				self.refs[kw]["del_button"].config(state=tk.DISABLED)
+			self.all_state = True
+			self.auto_claim_info.data["all_state"] = True
+			self.auto_claim_info.save()
+		else:
+			self.e.config(state=tk.NORMAL)
+			self.b.config(state=tk.NORMAL)
+			for kw in self.keywords:
+				self.refs[kw]["del_button"].config(state=tk.NORMAL)
+			self.all_state = False
+			self.auto_claim_info.data["all_state"] = False
+			self.auto_claim_info.save()
 
 	def delete(self, kw):
 		self.refs[kw]["kw_label"].destroy()
 		self.refs[kw]["del_button"].destroy()
 		self.keywords.remove(kw)
-		self.auto_claim_info.data = {x:"N/A" for x in self.keywords}
+		self.auto_claim_info.data["keywords"] = self.keywords
 		self.auto_claim_info.save()
 
 	def add(self):
@@ -592,7 +655,7 @@ class AutoClaim:
 		self.r += 1
 		self.keywords.append(kw)
 		self.e.delete(0, 'end')
-		self.auto_claim_info.data = {x:"N/A" for x in self.keywords}
+		self.auto_claim_info.data["keywords"] = self.keywords
 		self.auto_claim_info.save()
 
 
