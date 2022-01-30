@@ -226,8 +226,7 @@ class App(ttk.Frame):
 					output += f"Windows ready: {', '.join(cw.title for cw in ready)}"
 				else:
 					output += msg
-				output += f"\nInitial count: {initial_count}"
-				output += f"\nCurrent count: {unclaimed_count}\n"
+				output += f"\nCurrent video count: {unclaimed_count}\n"
 				if self.keywords:
 					kws = ", ".join(kw for kw in self.keywords)
 					output += f"\nWill claim videos with keyword(s): {kws}"
@@ -572,6 +571,8 @@ class AutoClaim:
 
 	def add(self):
 		kw = self.e.get()
+		if kw == "all":
+			kw == ""
 		if not kw:
 			popupMessage("Error", "Please input keyword.")
 			return
