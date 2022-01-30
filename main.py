@@ -11,6 +11,8 @@ import threading
 import json
 import os
 from PIL import Image, ImageTk
+import time
+import datetime
 
 def popupMessage(title, message, windowToClose=None):
 	popupWindow = tk.Toplevel()
@@ -115,7 +117,7 @@ class App(ttk.Frame):
 		self.start_button.grid(row=4, column=0, columnspan=3, pady=10)
 
 	def update_to_send(self):
-		#update send list during runtime
+		#updates send list during runtime
 		self.to_send = []
 
 		windows_info = Database("windows_info.json")
@@ -125,6 +127,11 @@ class App(ttk.Frame):
 				coords = attrs['coords']
 				cw = ChatWindow(name, coords)
 				self.to_send.append(cw)
+
+	def update_kw_list(self):
+		#updates keyword list during runtime
+		self.auto_claim_info = Database("auto_claim_info.json")
+		self.keywords = list(self.auto_claim_info.data.keys())
 
 	def pin_window(self, event):
 		if not self.pin.get():
@@ -190,6 +197,8 @@ class App(ttk.Frame):
 
 				#get latest send list
 				self.update_to_send()
+				#get latest keyword list
+				self.update_kw_list()
 
 				#check which ones are still open
 				for cw in self.to_send:
@@ -218,7 +227,12 @@ class App(ttk.Frame):
 				else:
 					output += msg
 				output += f"\nInitial count: {initial_count}"
-				output += f"\nCurrent count: {unclaimed_count}"
+				output += f"\nCurrent count: {unclaimed_count}\n"
+				if self.keywords:
+					kws = ", ".join(kw for kw in self.keywords)
+					output += f"\nWill claim videos with keyword(s): {kws}"
+				else:
+					output += f"\nAuto-claim off."
 				self.output.set(output)
 				self.pb.grid(row=3, column=0, columnspan=3, pady=10)
 				self.pb.start()
@@ -227,17 +241,47 @@ class App(ttk.Frame):
 					if unclaimed_count == "0":
 						for cw in ready:
 							cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.')
-					elif unclaimed_count > initial_count:
+					elif unclaimed_count > initial_count: #do stuff
 						self.output.set("TAPD has been updated!")
 						for cw in ready:
 							cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 3)
 						self.driver.maximize_window()
+
+						#auto claim
+						def add_comment():
+							pyautogui.moveTo(708, 1143)
+							pyautogui.click()
+							pyautogui.press("1")
+							pyautogui.press("enter")
+
+						def close_comment():
+							pyautogui.moveTo(979, 1280)
+							pyautogui.click()						
+
+						if self.keywords:
+							to_click = []
+							driver.switch_to.default_content()
+							sections = driver.find_elements_by_class_name("title-name")
+							for x in sections:
+								if x.text == "待领取":
+									main_box_el = x.find_element_by_xpath("..").find_element_by_xpath("..").find_element_by_xpath("..")
+									found_elements = main_box_el.find_elements_by_class_name("card-name")
+								for e in found_elements:
+									if any(kw in e.text for kw in self.keywords):
+										to_click.append(e)
+							for e in to_click:
+								e.click()
+								time.sleep(0.25)
+								add_comment()
+								close_comment()
+
 						self.pb.stop()
 						self.status.set("Status: Program has finished.")
 						break
 					else:
 						initial_count = unclaimed_count
 				self.driver.refresh()
+
 
 class Database:
 	def __init__(self, save_file):
@@ -481,6 +525,78 @@ class ManualSend:
 		else:
 			popupMessage("Error", "No target window found. Activate at least one window.")
 
+class AutoClaim:
+	def __init__(self):
+		self.t = tk.Toplevel()
+		self.t.resizable(False, False)
+		self.r = 4
+		self.refs = {}
+		self.setup_widgets()
+		self.load()
+
+	def load(self):
+		self.auto_claim_info = Database("auto_claim_info.json")
+		self.keywords = list(self.auto_claim_info.data.keys())
+
+		if self.keywords:
+			for kw in self.keywords:
+				kw_label = ttk.Button(self.t, text=kw)
+				del_button = ttk.Button(self.t, text="Delete", command= lambda x=kw: self.delete(x))
+
+				#saving references to widgets
+				self.refs[kw] = {
+				"kw_label" : kw_label,
+				"del_button" : del_button,
+				}
+
+				kw_label.grid(row=self.r, column=0, sticky=tk.W)
+				del_button.grid(row=self.r, column=1, padx=10, pady=10)
+
+				self.r += 1
+
+	def setup_widgets(self):
+		self.l = ttk.Label(self.t, text="Claim movies with keyword:")
+		self.e = ttk.Entry(self.t, width=20)
+		self.b = ttk.Button(self.t, text="Add", command=self.add)
+
+		self.l.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
+		self.e.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
+		self.b.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+
+	def delete(self, kw):
+		self.refs[kw]["kw_label"].destroy()
+		self.refs[kw]["del_button"].destroy()
+		self.keywords.remove(kw)
+		self.auto_claim_info.data = {x:"N/A" for x in self.keywords}
+		self.auto_claim_info.save()
+
+	def add(self):
+		kw = self.e.get()
+		if not kw:
+			popupMessage("Error", "Please input keyword.")
+			return
+		elif kw in self.keywords:
+			popupMessage("Error", "Keyword already exists.")
+			return
+
+		kw_label = ttk.Label(self.t, text=kw)
+		del_button = ttk.Button(self.t, text="Delete", command= lambda x=kw: self.delete(x))
+
+		#save references
+		self.refs[kw] = {
+		"kw_label" : kw_label,
+		"del_button" : del_button,
+		}
+		
+		kw_label.grid(row=self.r, column=0, padx=10, pady=10, stick=tk.W)
+		del_button.grid(row=self.r, column=1, padx=10, pady=10, stick=tk.E)
+		self.r += 1
+		self.keywords.append(kw)
+		self.e.delete(0, 'end')
+		self.auto_claim_info.data = {x:"N/A" for x in self.keywords}
+		self.auto_claim_info.save()
+
+
 root = tk.Tk()
 
 #load r&g lights
@@ -507,6 +623,7 @@ main_menu.add_cascade(label="Settings", menu=settings_menu)
 settings_menu.add_command(label="Change Login Details", command=lambda: LoginDetails())
 settings_menu.add_command(label="Manage Send Message Locations", command= lambda: SendMessageLocations())
 settings_menu.add_command(label="Manual Send", command=lambda: ManualSend())
+settings_menu.add_command(label="Auto Claim", command=lambda: AutoClaim())
 
 root.mainloop()
 
