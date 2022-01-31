@@ -687,5 +687,11 @@ settings_menu.add_command(label="Manage Send Message Locations", command= lambda
 settings_menu.add_command(label="Manual Send", command=lambda: ManualSend())
 settings_menu.add_command(label="Auto Claim", command=lambda: AutoClaim())
 
+root.update()
+root.minsize(root.winfo_width(), root.winfo_height())
+x_cordinate = int((root.winfo_screenwidth() / 2) - (root.winfo_width() / 2))
+y_cordinate = int((root.winfo_screenheight() / 2) - (root.winfo_height() / 2))
+root.geometry("+{}+{}".format(x_cordinate, y_cordinate - 20))
+
 root.mainloop()
 
