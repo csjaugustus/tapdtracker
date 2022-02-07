@@ -244,14 +244,14 @@ class App(ttk.Frame):
 				else:
 					output += msg
 				output += f"\nCurrent video count: {unclaimed_count}"
-				output += f"\nCurrent refresh delay: {latency}s."
+				output += f"\nCurrent refresh delay: {round(latency, 2)}s."
 
 				if not latencies:
 					avg_lat = 0
 				else:
 					avg_lat = sum(latencies)/len(latencies)
 
-				output += f"\nAverage refresh delay: {avg_lat}s.\n"
+				output += f"\nAverage refresh delay: {round(avg_lat, 2)}s.\n"
 				if not self.keywords:
 					output += "\nAuto-claim off."
 				elif self.keywords == "all":
