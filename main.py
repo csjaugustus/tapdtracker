@@ -198,7 +198,11 @@ class App(ttk.Frame):
 		finally:
 			list_count_el = self.driver.find_element_by_class_name('list-count')
 			initial_count = get_count(list_count_el.text)
-			
+		
+		t1 = 0
+		t2 = 0
+		latency = 0
+		latencies = []
 		while True:
 			try:
 				WebDriverWait(self.driver, 10).until(
@@ -239,7 +243,15 @@ class App(ttk.Frame):
 					output += f"Windows ready: {', '.join(cw.title for cw in ready)}"
 				else:
 					output += msg
-				output += f"\nCurrent video count: {unclaimed_count}\n"
+				output += f"\nCurrent video count: {unclaimed_count}"
+				output += f"\nCurrent refresh delay: {latency}s."
+
+				if not latencies:
+					avg_lat = 0
+				else:
+					avg_lat = sum(latencies)/len(latencies)
+
+				output += f"\nAverage refresh delay: {avg_lat}s.\n"
 				if not self.keywords:
 					output += "\nAuto-claim off."
 				elif self.keywords == "all":
@@ -254,7 +266,7 @@ class App(ttk.Frame):
 				if unclaimed_count != initial_count:
 					if unclaimed_count == "0":
 						for cw in ready:
-							cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.')
+							cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.', 3)
 					elif unclaimed_count > initial_count: #do stuff
 						self.output.set("TAPD has been updated!")
 						for cw in ready:
@@ -291,13 +303,26 @@ class App(ttk.Frame):
 								time.sleep(0.25)
 								add_comment()
 								close_comment()
+							claimed_titles = "\n".join(e.text for e in to_click)
+							cw.send(f"Claimed these videos:\n{claimed_titles}", 1)
 
 						self.pb.stop()
 						self.status.set("Status: Program has finished.")
 						break
 					else:
 						initial_count = unclaimed_count
+
 				self.driver.refresh()
+
+				t2 = datetime.datetime.now()
+
+				if t1 == 0:
+					t1 = t2
+				else:
+					latency = (t2-t1).total_seconds()
+					latencies.append(latency)
+					t1 = t2
+
 
 
 class Database:
