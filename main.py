@@ -13,6 +13,7 @@ import os
 from PIL import Image, ImageTk
 import time
 import datetime
+import traceback
 
 def popupMessage(title, message, windowToClose=None):
 	popupWindow = tk.Toplevel()
@@ -263,55 +264,60 @@ class App(ttk.Frame):
 				self.pb.grid(row=3, column=0, columnspan=3, pady=10)
 				self.pb.start()
 
-				if unclaimed_count != initial_count:
-					if unclaimed_count == "0":
-						for cw in ready:
-							cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.', 3)
-					elif unclaimed_count > initial_count: #do stuff
-						self.output.set("TAPD has been updated!")
-						for cw in ready:
-							cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 3)
-						self.driver.maximize_window()
-
-						#auto claim
-						def add_comment():
-							pyautogui.moveTo(708, 1143)
-							pyautogui.click()
-							pyautogui.press("1")
-							pyautogui.press("enter")
-
-						def close_comment():
-							pyautogui.moveTo(979, 1280)
-							pyautogui.click()						
-
-						if self.keywords:
-							to_click = []
-							driver.switch_to.default_content()
-							sections = driver.find_elements_by_class_name("title-name")
-							for x in sections:
-								if x.text == "待领取":
-									main_box_el = x.find_element_by_xpath("..").find_element_by_xpath("..").find_element_by_xpath("..")
-									found_elements = main_box_el.find_elements_by_class_name("card-name")
-								if self.keywords == "all":
-									to_click = [e for e in found_elements]
-								else:
-									for e in found_elements:
-										if any(kw in e.text for kw in self.keywords):
-											to_click.append(e)
-							for e in to_click:
-								e.click()
-								time.sleep(0.25)
-								add_comment()
-								close_comment()
-							claimed_titles = "\n".join(e.text for e in to_click)
-							cw.send(f"Claimed these videos:\n{claimed_titles}", 1)
+				try:
+					if unclaimed_count != initial_count:
+						if unclaimed_count == "0":
+							for cw in ready:
+								cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.', 3)
+						elif unclaimed_count > initial_count: #do stuff
+							self.output.set("TAPD has been updated!")
+							for cw in ready:
+								cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 3)
 							self.driver.maximize_window()
 
-						self.pb.stop()
-						self.status.set("Status: Program has finished.")
-						break
-					else:
-						initial_count = unclaimed_count
+							#auto claim
+							def add_comment():
+								pyautogui.moveTo(708, 1143)
+								pyautogui.click()
+								pyautogui.press("1")
+								pyautogui.press("enter")
+
+							def close_comment():
+								pyautogui.moveTo(979, 1280)
+								pyautogui.click()						
+
+							if self.keywords:
+								to_click = []
+								driver.switch_to.default_content()
+								sections = driver.find_elements_by_class_name("title-name")
+								for x in sections:
+									if x.text == "待领取":
+										main_box_el = x.find_element_by_xpath("..").find_element_by_xpath("..").find_element_by_xpath("..")
+										found_elements = main_box_el.find_elements_by_class_name("card-name")
+									if self.keywords == "all":
+										to_click = [e for e in found_elements]
+									else:
+										for e in found_elements:
+											if any(kw in e.text for kw in self.keywords):
+												to_click.append(e)
+								for e in to_click:
+									e.click()
+									time.sleep(0.25)
+									add_comment()
+									close_comment()
+								claimed_titles = "\n".join(e.text for e in to_click)
+								for cw in ready:
+									cw.send(f"Claimed these videos:\n{claimed_titles}", 1)
+								self.driver.maximize_window()
+
+							self.pb.stop()
+							self.status.set("Status: Program has finished.")
+							break
+						else:
+							initial_count = unclaimed_count
+				except Exception as e:
+					for cw in ready:
+						cw.send(traceback.format_exc(), 1)
 
 				self.driver.refresh()
 
