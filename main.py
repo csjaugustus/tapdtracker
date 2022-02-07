@@ -305,6 +305,7 @@ class App(ttk.Frame):
 								close_comment()
 							claimed_titles = "\n".join(e.text for e in to_click)
 							cw.send(f"Claimed these videos:\n{claimed_titles}", 1)
+							self.driver.maximize_window()
 
 						self.pb.stop()
 						self.status.set("Status: Program has finished.")
