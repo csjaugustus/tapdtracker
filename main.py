@@ -146,6 +146,8 @@ class App(ttk.Frame):
 			self.keywords = "all"
 		else:
 			self.keywords = self.auto_claim_info.data["keywords"]
+		self.negative_keywords = self.auto_claim_info.data["negative_keywords"]
+
 
 	def pin_window(self, event):
 		if not self.pin.get():
@@ -259,65 +261,77 @@ class App(ttk.Frame):
 					output += "\nWill auto-claim all videos."
 				else:
 					kws = ", ".join(kw for kw in self.keywords)
-					output += f"\nWill auto-claim videos with keyword(s): {kws}"
+					output += f"\nWill claim videos with keyword(s): {kws}."
+					nkws = ", ".join(nkw for nkw in self.negative_keywords)
+					output += f"\nWill not claim videos with keyword(s): {nkws}."
 				self.output.set(output)
 				self.pb.grid(row=3, column=0, columnspan=3, pady=10)
 				self.pb.start()
 
-				try:
-					if unclaimed_count != initial_count:
-						if unclaimed_count == "0":
-							for cw in ready:
-								cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.', 3)
-						elif unclaimed_count > initial_count: #do stuff
-							self.output.set("TAPD has been updated!")
-							for cw in ready:
-								cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 3)
-							self.driver.maximize_window()
+				if unclaimed_count != initial_count:
+					if unclaimed_count == "0":
+						for cw in ready:
+							cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.', 3)
+					elif unclaimed_count > initial_count: #do stuff
+						self.output.set("TAPD has been updated!")
+						for cw in ready:
+							cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 3)
+						self.driver.maximize_window()
 
-							#auto claim
-							def add_comment():
-								pyautogui.moveTo(708, 1143)
-								pyautogui.click()
-								pyautogui.press("1")
-								pyautogui.press("enter")
+						#auto claim
+						def add_comment():
+							pyautogui.moveTo(708, 1143)
+							pyautogui.click()
+							pyautogui.press("1")
+							pyautogui.press("enter")
 
-							def close_comment():
-								pyautogui.moveTo(979, 1280)
-								pyautogui.click()						
+						def close_comment():
+							pyautogui.moveTo(979, 1280)
+							pyautogui.click()						
 
-							if self.keywords:
-								to_click = []
-								driver.switch_to.default_content()
-								sections = driver.find_elements_by_class_name("title-name")
-								for x in sections:
-									if x.text == "待领取":
-										main_box_el = x.find_element_by_xpath("..").find_element_by_xpath("..").find_element_by_xpath("..")
-										found_elements = main_box_el.find_elements_by_class_name("card-name")
-									if self.keywords == "all":
-										to_click = [e for e in found_elements]
-									else:
-										for e in found_elements:
-											if any(kw in e.text for kw in self.keywords):
-												to_click.append(e)
+						if self.keywords:
+							to_click = []
+							self.driver.switch_to.default_content()
+							sections = self.driver.find_elements_by_class_name("title-name")
+							for x in sections:
+								if x.text == "待领取":
+									main_box_el = x.find_element_by_xpath("..").find_element_by_xpath("..").find_element_by_xpath("..")
+									found_elements = main_box_el.find_elements_by_class_name("card-name")
+								if self.keywords == "all":
+									to_click = [e for e in found_elements if not any(nkw in e.text for nkw in self.negative_keywords)]
+								else:
+									for e in found_elements:
+										if any(kw in e.text for kw in self.keywords) and not any(nkw in e.text for nkw in self.negative_keywords):
+											to_click.append(e)
+							try:
+								clicked = []
 								for e in to_click:
 									e.click()
 									time.sleep(0.25)
 									add_comment()
 									close_comment()
-								claimed_titles = "\n".join(e.text for e in to_click)
-								for cw in ready:
-									cw.send(f"Claimed these videos:\n{claimed_titles}", 1)
-								self.driver.maximize_window()
+									clicked.append(e)
 
-							self.pb.stop()
-							self.status.set("Status: Program has finished.")
-							break
-						else:
-							initial_count = unclaimed_count
-				except Exception as e:
-					for cw in ready:
-						cw.send(traceback.format_exc(), 1)
+							#in case clicking errors
+							except:
+								for e in to_click:
+									if e not in clicked:
+										e.click()
+										time.sleep(0.5)
+										add_comment()
+										close_comment()
+
+							claimed_titles = "\n".join(e.text for e in to_click)
+							for cw in ready:
+								cw.send(f"Claimed videos:\n{claimed_titles}", 1)
+							self.output.set(f"Claimed videos: \n{claimed_titles}")
+							self.driver.maximize_window()
+
+						self.pb.stop()
+						self.status.set("Status: Program has finished.")
+						exit()
+					else:
+						initial_count = unclaimed_count
 
 				self.driver.refresh()
 
@@ -578,10 +592,11 @@ class AutoClaim:
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
-		self.r = 4
+		self.r1 = 4
+		self.r2 = 4
 		self.refs = {}
-		self.setup_widgets()
 		self.load()
+		self.setup_widgets()
 
 	def load(self):
 		self.auto_claim_info = Database("auto_claim_info.json")
@@ -591,11 +606,28 @@ class AutoClaim:
 			self.auto_claim_info.data = {
 			"all_state" : False,
 			"keywords" : [],
+			"negative_keywords" : [],
 			}
 			self.auto_claim_info.save()
 
 		self.all_state = self.auto_claim_info.data["all_state"]
 		self.keywords = self.auto_claim_info.data["keywords"]
+		self.negative_keywords = self.auto_claim_info.data["negative_keywords"]
+
+	def setup_widgets(self):
+		self.pin_var = tk.BooleanVar(value=False)
+
+		self.pin_button = ttk.Checkbutton(self.t, text="Claim All", variable=self.pin_var, style="Switch.TCheckbutton")
+		self.l1 = ttk.Label(self.t, text="Claim movies with keyword:")
+		self.e1 = ttk.Entry(self.t, width=20)
+		self.b1 = ttk.Button(self.t, text="Add", command=self.add_kw)
+
+		self.pin_button.bind("<Button-1>", self.toggle)
+
+		self.pin_button.grid(row=0, column=0, sticky=tk.E)
+		self.l1.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
+		self.e1.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
+		self.b1.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
 		if self.keywords:
 			for kw in self.keywords:
@@ -608,10 +640,34 @@ class AutoClaim:
 				"del_button" : del_button,
 				}
 
-				kw_label.grid(row=self.r, column=0, sticky=tk.W)
-				del_button.grid(row=self.r, column=1, padx=10, pady=10)
+				kw_label.grid(row=self.r1, column=0, sticky=tk.W)
+				del_button.grid(row=self.r1, column=1, padx=10, pady=10)
 
-				self.r += 1
+				self.r1 += 1
+
+		self.l2 = ttk.Label(self.t, text="Don't claim movies with keyword:")
+		self.e2 = ttk.Entry(self.t, width=20)
+		self.b2 = ttk.Button(self.t, text="Add", command=self.add_nkw)
+
+		self.l2.grid(row=1, column=2, columnspan=2, padx=10, pady=10)
+		self.e2.grid(row=2, column=2, columnspan=2, padx=10, pady=10)
+		self.b2.grid(row=3, column=2, columnspan=2, padx=10, pady=10)
+
+		if self.negative_keywords:
+			for kw in self.negative_keywords:
+				kw_label = ttk.Button(self.t, text=kw)
+				del_button = ttk.Button(self.t, text="Delete", command= lambda x=kw: self.delete(x))
+
+				#saving references to widgets
+				self.refs[kw] = {
+				"kw_label" : kw_label,
+				"del_button" : del_button,
+				}
+
+				kw_label.grid(row=self.r2, column=2, sticky=tk.W)
+				del_button.grid(row=self.r2, column=3, padx=10, pady=10)
+
+				self.r2 += 1
 
 		if self.all_state:
 			self.pin_var.set(True)
@@ -622,35 +678,20 @@ class AutoClaim:
 				self.refs[kw]["del_button"].config(state=tk.DISABLED)
 			self.all_state = True
 			self.auto_claim_info.data["all_state"] = True
-			self.auto_claim_info.save()			
-
-	def setup_widgets(self):
-		self.pin_var = tk.BooleanVar(value=False)
-
-		self.pin_button = ttk.Checkbutton(self.t, text="Claim All", variable=self.pin_var, style="Switch.TCheckbutton")
-		self.l = ttk.Label(self.t, text="Claim movies with keyword:")
-		self.e = ttk.Entry(self.t, width=20)
-		self.b = ttk.Button(self.t, text="Add", command=self.add)
-
-		self.pin_button.bind("<Button-1>", self.toggle)
-
-		self.pin_button.grid(row=0, column=0, sticky=tk.E)
-		self.l.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
-		self.e.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
-		self.b.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+			self.auto_claim_info.save()
 
 	def toggle(self, event):
 		if not self.pin_var.get(): #state before press
-			self.e.config(state=tk.DISABLED)
-			self.b.config(state=tk.DISABLED)
+			self.e1.config(state=tk.DISABLED)
+			self.b1.config(state=tk.DISABLED)
 			for kw in self.keywords:
 				self.refs[kw]["del_button"].config(state=tk.DISABLED)
 			self.all_state = True
 			self.auto_claim_info.data["all_state"] = True
 			self.auto_claim_info.save()
 		else:
-			self.e.config(state=tk.NORMAL)
-			self.b.config(state=tk.NORMAL)
+			self.e1.config(state=tk.NORMAL)
+			self.b1.config(state=tk.NORMAL)
 			for kw in self.keywords:
 				self.refs[kw]["del_button"].config(state=tk.NORMAL)
 			self.all_state = False
@@ -660,17 +701,24 @@ class AutoClaim:
 	def delete(self, kw):
 		self.refs[kw]["kw_label"].destroy()
 		self.refs[kw]["del_button"].destroy()
-		self.keywords.remove(kw)
-		self.auto_claim_info.data["keywords"] = self.keywords
+		if kw in self.keywords:
+			self.keywords.remove(kw)
+			self.auto_claim_info.data["keywords"] = self.keywords
+		elif kw in self.negative_keywords:
+			self.negative_keywords.remove(kw)
+			self.auto_claim_info.data["negative_keywords"] = self.negative_keywords
 		self.auto_claim_info.save()
 
-	def add(self):
-		kw = self.e.get()
+	def add_kw(self):
+		kw = self.e1.get()
 		if not kw:
 			popupMessage("Error", "Please input keyword.")
 			return
 		elif kw in self.keywords:
 			popupMessage("Error", "Keyword already exists.")
+			return
+		elif kw in self.negative_keywords:
+			popupMessage("Error", "Can't contradict keywords not to claim.")
 			return
 
 		kw_label = ttk.Label(self.t, text=kw)
@@ -682,12 +730,41 @@ class AutoClaim:
 		"del_button" : del_button,
 		}
 		
-		kw_label.grid(row=self.r, column=0, padx=10, pady=10, stick=tk.W)
-		del_button.grid(row=self.r, column=1, padx=10, pady=10, stick=tk.E)
-		self.r += 1
+		kw_label.grid(row=self.r1, column=0, padx=10, pady=10, stick=tk.W)
+		del_button.grid(row=self.r1, column=1, padx=10, pady=10, stick=tk.E)
+		self.r1 += 1
 		self.keywords.append(kw)
-		self.e.delete(0, 'end')
+		self.e1.delete(0, 'end')
 		self.auto_claim_info.data["keywords"] = self.keywords
+		self.auto_claim_info.save()
+
+	def add_nkw(self):
+		kw = self.e2.get()
+		if not kw:
+			popupMessage("Error", "Please input keyword.")
+			return
+		elif kw in self.negative_keywords:
+			popupMessage("Error", "Keyword already exists.")
+			return
+		elif kw in self.keywords:
+			popupMessage("Error", "Can't contradict keywords to claim.")
+			return
+
+		kw_label = ttk.Label(self.t, text=kw)
+		del_button = ttk.Button(self.t, text="Delete", command= lambda x=kw: self.delete(x))
+
+		#save references
+		self.refs[kw] = {
+		"kw_label" : kw_label,
+		"del_button" : del_button,
+		}
+		
+		kw_label.grid(row=self.r2, column=2, padx=10, pady=10, stick=tk.W)
+		del_button.grid(row=self.r2, column=3, padx=10, pady=10, stick=tk.E)
+		self.r2 += 1
+		self.negative_keywords.append(kw)
+		self.e2.delete(0, 'end')
+		self.auto_claim_info.data["negative_keywords"] = self.negative_keywords
 		self.auto_claim_info.save()
 
 
