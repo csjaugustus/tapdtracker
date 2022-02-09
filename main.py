@@ -14,6 +14,7 @@ from PIL import Image, ImageTk
 import time
 import datetime
 import traceback
+import pyperclip
 
 def popupMessage(title, message, windowToClose=None):
 	popupWindow = tk.Toplevel()
@@ -44,7 +45,7 @@ class ChatWindow:
 		else:
 			self.open = False
 
-	def send(self, msg, times):
+	def send(self, msg, times, chinese=False):
 		window = gw.getWindowsWithTitle(self.title)[0]
 		all_windows = gw.getAllWindows()
 
@@ -53,9 +54,16 @@ class ChatWindow:
 		window.maximize()
 		pyautogui.moveTo(self.x, self.y)
 		pyautogui.click()
-		for i in range(times):
-			pyautogui.write(msg)
-			pyautogui.press('enter')
+		if not chinese:
+			for i in range(times):
+				pyautogui.write(msg)
+				pyautogui.press('enter')
+		else:
+			pyperclip.copy(msg)
+			for i in range(times):
+				pyautogui.hotkey("ctrl", "v")
+				pyautogui.press('enter')
+
 		window.minimize()
 
 
@@ -333,7 +341,7 @@ class App(ttk.Frame):
 							cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 1)
 						if claimed_titles:
 							for cw in ready:
-								cw.send(f"Claimed videos: {claimed_titles}", 1)
+								cw.send(f"Claimed videos: {claimed_titles}", 1, chinese=True)
 							self.output.set(f"Detected update at {t3.strftime('%H:%M:%S')}hrs.\nClaimed {len(to_click)} videos in {round((t4-t3).total_seconds(), 2)}s.")
 
 						self.pb.stop()
