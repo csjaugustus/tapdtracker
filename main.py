@@ -299,20 +299,18 @@ class App(ttk.Frame):
 								if x.text == "待领取":
 									main_box_el = x.find_element_by_xpath("..").find_element_by_xpath("..").find_element_by_xpath("..")
 									found_elements = main_box_el.find_elements_by_class_name("card-name")
-									print(f"********* NUMBER OF FOUND ELEMENTS******** {len(found_elements)} *******")
 							if self.keywords == "all":
 								to_click = [e for e in found_elements if not any(nkw in e.text for nkw in self.negative_keywords)]
 							else:
 								for e in found_elements:
 									if any(kw in e.text for kw in self.keywords) and not any(nkw in e.text for nkw in self.negative_keywords):
 										to_click.append(e)
-							print(f"*****NUMBER OF TO CLICK VIDEOS ****** {len(to_click)} ******")
 
 							for e in to_click:
 								e.click()
 								try:
 									WebDriverWait(self.driver, 10).until(
-									EC.element_to_be_clickable((By.ID, "control-comment-submit"))
+									EC.element_to_be_clickable((By.CLASS_NAME, "editor-area"))
 									)
 								finally:
 									add_comment()
@@ -328,7 +326,7 @@ class App(ttk.Frame):
 						if claimed_titles:
 							for cw in ready:
 								cw.send(f"Claimed videos: {claimed_titles}", 1)
-							self.output.set(f"Detected update at {t3}hrs.\nClaimed {len(to_click)} videos in {round((t4-t3).total_seconds(), 2)}s.")
+							self.output.set(f"Detected update at {t3.strftime('%H:%M:%S')}hrs.\nClaimed {len(to_click)} videos in {round((t4-t3).total_seconds(), 2)}s.")
 
 						self.pb.stop()
 						self.status.set("Status: Program has finished.")
