@@ -176,8 +176,10 @@ class App(ttk.Frame):
 		self.start_button.config(state=tk.DISABLED)
 
 		self.driver = webdriver.Chrome()
-		self.driver.get("https://www.tapd.cn/43882502")
+		self.driver.get("https://www.tapd.cn/64747886")
 		self.driver.minimize_window()
+
+		#personal: 64747886 rrtv: 43882502
 		
 		self.output.set("Logging in...")
 
@@ -274,9 +276,7 @@ class App(ttk.Frame):
 						for cw in ready:
 							cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.', 3)
 					elif unclaimed_count > initial_count: #do stuff
-						self.output.set("TAPD has been updated!")
-						for cw in ready:
-							cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 3)
+						t3 = datetime.datetime.now()
 						self.driver.maximize_window()
 
 						#auto claim
@@ -290,6 +290,7 @@ class App(ttk.Frame):
 							pyautogui.moveTo(979, 1280)
 							pyautogui.click()						
 
+						claimed_titles = ""
 						if self.keywords:
 							to_click = []
 							self.driver.switch_to.default_content()
@@ -298,38 +299,41 @@ class App(ttk.Frame):
 								if x.text == "待领取":
 									main_box_el = x.find_element_by_xpath("..").find_element_by_xpath("..").find_element_by_xpath("..")
 									found_elements = main_box_el.find_elements_by_class_name("card-name")
-								if self.keywords == "all":
-									to_click = [e for e in found_elements if not any(nkw in e.text for nkw in self.negative_keywords)]
-								else:
-									for e in found_elements:
-										if any(kw in e.text for kw in self.keywords) and not any(nkw in e.text for nkw in self.negative_keywords):
-											to_click.append(e)
-							try:
-								clicked = []
-								for e in to_click:
-									e.click()
-									time.sleep(0.25)
+									print(f"********* NUMBER OF FOUND ELEMENTS******** {len(found_elements)} *******")
+							if self.keywords == "all":
+								to_click = [e for e in found_elements if not any(nkw in e.text for nkw in self.negative_keywords)]
+							else:
+								for e in found_elements:
+									if any(kw in e.text for kw in self.keywords) and not any(nkw in e.text for nkw in self.negative_keywords):
+										to_click.append(e)
+							print(f"*****NUMBER OF TO CLICK VIDEOS ****** {len(to_click)} ******")
+
+							for e in to_click:
+								e.click()
+								try:
+									WebDriverWait(self.driver, 10).until(
+									EC.element_to_be_clickable((By.ID, "control-comment-submit"))
+									)
+								finally:
 									add_comment()
 									close_comment()
-									clicked.append(e)
 
-							#in case clicking errors
-							except:
-								for e in to_click:
-									if e not in clicked:
-										e.click()
-										time.sleep(0.5)
-										add_comment()
-										close_comment()
+							t4 = datetime.datetime.now()
 
-							claimed_titles = "\n".join(e.text for e in to_click)
+							claimed_titles = ", ".join(e.text for e in to_click)
+
+						self.output.set("TAPD has been updated!")
+						for cw in ready:
+							cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 1)
+						if claimed_titles:
 							for cw in ready:
-								cw.send(f"Claimed videos:\n{claimed_titles}", 1)
-							self.output.set(f"Claimed videos: \n{claimed_titles}")
-							self.driver.maximize_window()
+								cw.send(f"Claimed videos: {claimed_titles}", 1)
+							self.output.set(f"Detected update at {t3}hrs.\nClaimed {len(to_click)} videos in {round((t4-t3).total_seconds(), 2)}s.")
 
 						self.pb.stop()
 						self.status.set("Status: Program has finished.")
+
+						self.driver.maximize_window()
 						exit()
 					else:
 						initial_count = unclaimed_count
@@ -630,7 +634,7 @@ class AutoClaim:
 
 		if self.keywords:
 			for kw in self.keywords:
-				kw_label = ttk.Button(self.t, text=kw)
+				kw_label = ttk.Label(self.t, text=kw)
 				del_button = ttk.Button(self.t, text="Delete", command= lambda x=kw: self.delete(x))
 
 				#saving references to widgets
@@ -639,7 +643,7 @@ class AutoClaim:
 				"del_button" : del_button,
 				}
 
-				kw_label.grid(row=self.r1, column=0, sticky=tk.W)
+				kw_label.grid(row=self.r1, column=0, padx=10, pady=10, sticky=tk.W)
 				del_button.grid(row=self.r1, column=1, padx=10, pady=10)
 
 				self.r1 += 1
@@ -654,7 +658,7 @@ class AutoClaim:
 
 		if self.negative_keywords:
 			for kw in self.negative_keywords:
-				kw_label = ttk.Button(self.t, text=kw)
+				kw_label = ttk.Label(self.t, text=kw)
 				del_button = ttk.Button(self.t, text="Delete", command= lambda x=kw: self.delete(x))
 
 				#saving references to widgets
@@ -663,7 +667,7 @@ class AutoClaim:
 				"del_button" : del_button,
 				}
 
-				kw_label.grid(row=self.r2, column=2, sticky=tk.W)
+				kw_label.grid(row=self.r2, column=2,padx=10, pady=10, sticky=tk.W)
 				del_button.grid(row=self.r2, column=3, padx=10, pady=10)
 
 				self.r2 += 1
