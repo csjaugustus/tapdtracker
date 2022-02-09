@@ -13,17 +13,18 @@ Chrome driver only works for Chrome v92. Visit https://chromedriver.chromium.org
 * [Auto Claim](#auto-claim)
 
 ## Installation
+In your command prompt:
 ```
-$ git clone https://github.com/csjaugustus/tapdtracker.git
-```
-```
-$ cd tapdtracker
+git clone https://github.com/csjaugustus/tapdtracker.git
 ```
 ```
-$ pip install -r requirements.txt
+cd tapdtracker
 ```
 ```
-$ main.py
+pip install -r requirements.txt
+```
+```
+main.py
 ```
 
 ## Setup
