@@ -247,24 +247,24 @@ class App(ttk.Frame):
 				else:
 					output += msg
 				output += f"\nCurrent video count: {unclaimed_count}"
-				output += f"\nCurrent refresh delay: {round(latency, 2)}s."
+				output += f"\nCurrent refresh delay: {round(latency, 2)}s"
 
 				if not latencies:
 					avg_lat = 0
 				else:
 					avg_lat = sum(latencies)/len(latencies)
 
-				output += f"\nAverage refresh delay: {round(avg_lat, 2)}s.\n"
+				output += f"\nAverage refresh delay: {round(avg_lat, 2)}s\n"
 				if not self.keywords:
 					output += "\nAuto-claim off."
 				elif self.keywords == "all":
 					output += "\nWill auto-claim all videos."
 				else:
 					kws = ", ".join(kw for kw in self.keywords)
-					output += f"\nWill claim videos with keyword(s): {kws}."
+					output += f"\nWill claim videos with keyword(s): {kws}"
 				if self.keywords and self.negative_keywords:
 					nkws = ", ".join(nkw for nkw in self.negative_keywords)
-					output += f"\nWill not claim videos with keyword(s): {nkws}."
+					output += f"\nWill not claim videos with keyword(s): {nkws}"
 				self.output.set(output)
 				self.pb.grid(row=3, column=0, columnspan=3, pady=10)
 				self.pb.start()
@@ -344,8 +344,6 @@ class App(ttk.Frame):
 					latency = (t2-t1).total_seconds()
 					latencies.append(latency)
 					t1 = t2
-
-
 
 class Database:
 	def __init__(self, save_file):
