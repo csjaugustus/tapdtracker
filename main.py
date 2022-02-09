@@ -82,6 +82,7 @@ class App(ttk.Frame):
 			auto_claim_info.data = {
 			"all_state" : False,
 			"keywords" : [],
+			"negative_keywords" :[],
 			}
 		auto_claim_info.save()
 
