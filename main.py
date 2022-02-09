@@ -262,7 +262,7 @@ class App(ttk.Frame):
 				else:
 					kws = ", ".join(kw for kw in self.keywords)
 					output += f"\nWill claim videos with keyword(s): {kws}."
-				if self.negative_keywords:
+				if self.keywords and self.negative_keywords:
 					nkws = ", ".join(nkw for nkw in self.negative_keywords)
 					output += f"\nWill not claim videos with keyword(s): {nkws}."
 				self.output.set(output)
