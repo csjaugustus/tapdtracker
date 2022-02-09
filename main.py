@@ -185,7 +185,7 @@ class App(ttk.Frame):
 		self.start_button.config(state=tk.DISABLED)
 
 		self.driver = webdriver.Chrome()
-		self.driver.get("https://www.tapd.cn/64747886")
+		self.driver.get("https://www.tapd.cn/43882502")
 		self.driver.minimize_window()
 
 		#personal: 64747886 rrtv: 43882502
