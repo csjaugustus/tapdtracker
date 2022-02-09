@@ -299,12 +299,19 @@ class App(ttk.Frame):
 								if x.text == "待领取":
 									main_box_el = x.find_element_by_xpath("..").find_element_by_xpath("..").find_element_by_xpath("..")
 									found_elements = main_box_el.find_elements_by_class_name("card-name")
+									total_indexes = len(found_elements)
 							if self.keywords == "all":
 								to_click = [e for e in found_elements if not any(nkw in e.text for nkw in self.negative_keywords)]
 							else:
+								indexes = []
 								for e in found_elements:
 									if any(kw in e.text for kw in self.keywords) and not any(nkw in e.text for nkw in self.negative_keywords):
 										to_click.append(e)
+										indx = found_elements.index(e)
+										indexes.append(indx)
+								first_index = indexes[0]
+								if first_index > total_indexes/2:
+									to_click.reverse()
 
 							for e in to_click:
 								e.click()
