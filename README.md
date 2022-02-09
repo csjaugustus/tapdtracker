@@ -5,6 +5,7 @@ Chrome driver only works for Chrome v92. Visit https://chromedriver.chromium.org
 
 ## Table of Contents
 * [Installation](#installation)
+* [Setup](#setup)
 * [Main Interface](#main-interface)
 * [Inputting Login Details](#inputting-login-details)
 * [Managing Send Locations](#managing-send-locations)
@@ -24,6 +25,12 @@ $ pip install -r requirements.txt
 ```
 $ main.py
 ```
+
+## Setup
+1. Input your login details in settings.
+2. Register at least one target window in settings. You can choose not to activate the registered window.
+3. If you wish to auto claim videos, set keywords in the auto claim menu.
+Note: Target windows and keywords can be edited during runtime. But login details cannot be changed once the program starts running.
 
 ## Main Interface
 <img src="https://user-images.githubusercontent.com/61149391/153204300-6d32495b-43bb-4e29-b2fa-f0d18ef6dfba.png" width=25% height=25%>
