@@ -155,7 +155,7 @@ class App(ttk.Frame):
 		self.light_label = tk.Label(self, image=self.red_light)
 		self.pin_button = ttk.Checkbutton(self, text="Pin", variable=self.pin, style="Switch.TCheckbutton")
 		self.status_label = ttk.Label(self,textvariable=self.status)
-		self.output_label = ttk.Label(self, textvariable=self.output, borderwidth=1, relief="groove")
+		self.output_label = ttk.Label(self, textvariable=self.output, borderwidth=10, relief="groove")
 		self.start_button = ttk.Button(self, text="Start", command=self.start)
 		self.pb = ttk.Progressbar(self, orient=tk.HORIZONTAL, length=300, mode="indeterminate")
 
