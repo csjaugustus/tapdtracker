@@ -1,7 +1,8 @@
 # TAPD Tracker
 Tracks when TAPD updates and then sends a message to target chat windows.
 Can also auto-claim videos containing certain keywords.
-Chrome driver only works for Chrome v92. Visit https://chromedriver.chromium.org/downloads to get the correct version.
+chromedriver.exe only works for Chrome v92. Visit https://chromedriver.chromium.org/downloads to get the correct version.
+Dependencies: Selenium, pyautogui, pygetwindow, Pillow, pynput, pyperclip.
 
 ## Table of Contents
 * [Installation](#installation)
