@@ -9,10 +9,12 @@ PyGetWindow==0.0.9
 pyinstaller==4.5
 pyinstaller-hooks-contrib==2021.2
 PyMsgBox==1.0.9
+pynput==1.7.6
 pyperclip==1.8.2
 PyRect==0.1.4
 PyScreeze==0.1.27
 PyTweening==1.0.3
 pywin32-ctypes==0.2.0
 selenium==3.141.0
+six==1.16.0
 urllib3==1.26.6
