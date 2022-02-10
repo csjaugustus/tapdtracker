@@ -384,6 +384,8 @@ class App(ttk.Frame):
 				else:
 					latency = (t2-t1).total_seconds()
 					latencies.append(latency)
+					if len(latencies) > 10:
+						latencies = latencies[:-10]
 					t1 = t2
 
 class Database:
