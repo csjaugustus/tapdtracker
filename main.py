@@ -17,6 +17,13 @@ import traceback
 import pyperclip
 
 def popupMessage(title, message, windowToClose=None):
+	"""
+	Sends a popup message. 
+	By default, acknowledging the popup message only closes the popup message itself. 
+	But you can pass in what other windows to close too.
+	For a fatal error that should close all windows, pass in 'all'.
+	"""
+
 	popupWindow = tk.Toplevel()
 	popupWindow.resizable(False, False)
 	popupWindow.title(title)
@@ -34,6 +41,12 @@ def popupMessage(title, message, windowToClose=None):
 	ok.pack(padx=10, pady=10)
 
 class ChatWindow:
+	"""
+	A chat window class that manages chat windows.
+	It can store attributes of a chat window, including its coordinates and open status.
+	It also has methods to update its status, or send messages to it.
+	"""
+
 	def __init__(self, window_title, coords):
 		self.title = window_title
 		self.x = coords[0]
@@ -67,8 +80,13 @@ class ChatWindow:
 		window.minimize()
 
 class App(ttk.Frame):
+	"""
+	The main application window.
+	Tracking and auto-claiming happen here.
+	"""
+
 	def __init__(self, parent):
-		ttk.Frame.__init__(self)
+		ttk.Frame.__init__(self, parent)
 		self.t = threading.Thread(target=self.track)
 
 		#variables
@@ -80,38 +98,42 @@ class App(ttk.Frame):
 		self.setup_widgets()
 
 	def initial_check(self):
+		"""
+		Checks that all the necessary information is ready before starting.
+		"""
+
 		login_details = Database("login_details.json")
 		windows_info = Database("windows_info.json")
 		auto_claim_info = Database("auto_claim_info.json")
+		click_coords = Database("click_coords.json")
 
-		#initialize auto claim data if empty
+		errors = []
+		if not login_details.data:
+			errors.append("Please input login details.")
 		if not auto_claim_info.data:
 			auto_claim_info.data = {
 			"all_state" : False,
 			"keywords" : [],
 			"negative_keywords" :[],
 			}
-		auto_claim_info.save()
+			auto_claim_info.save()
 
-		errors = []
-		if not login_details.data:
-			errors.append("Please input login details.")
-		if not any(windows_info.data[name]['activated'] for name in windows_info.data):
-			errors.append("Please have at least one activated window to send messages to.")
+			if not any(windows_info.data[name]['activated'] for name in windows_info.data):
+				errors.append("Please have at least one activated window to send messages to.")
+		else:
+			if not click_coords.data:
+				errors.append("Please input click coords for auto claim.")
 
 		if errors:
 			popupMessage("Error(s)", "\n\n".join(e for e in errors))
 			return False
 
-		self.to_send = []
-		for name, attrs in windows_info.data.items():
-			activated = attrs['activated']
-			if activated:
-				coords = attrs['coords']
-				cw = ChatWindow(name, coords)
-				self.to_send.append(cw)
 		self.username = login_details.data['username']
 		self.password = login_details.data['password']
+		self.comment_x_coord = click_coords.data['comment_x_coord']
+		self.comment_y_coord = click_coords.data['comment_y_coord']
+		self.close_x_coord = click_coords.data['close_x_coord']
+		self.close_y_coord = click_coords.data['close_y_coord']
 		return True
 
 	def start(self):
@@ -183,21 +205,17 @@ class App(ttk.Frame):
 			self.light_label.grid(row=0, column=0, sticky=tk.W)
 
 	def track(self):
-		self.initial_check()
-
 		def get_count(text):
 			pattern = re.compile("\\d+")
-			return pattern.findall(text)[0]
+			return int(pattern.findall(text)[0])
 
 		self.status.set("Status: Program is running.")
 		self.start_button.config(state=tk.DISABLED)
 
+		#personal: 64747886 rrtv: 43882502
 		self.driver = webdriver.Chrome()
 		self.driver.get("https://www.tapd.cn/43882502")
 		self.driver.minimize_window()
-
-		#personal: 64747886 rrtv: 43882502
-		
 		self.output.set("Logging in...")
 
 		try:
@@ -225,6 +243,7 @@ class App(ttk.Frame):
 		t2 = 0
 		latency = 0
 		latencies = []
+
 		while True:
 			try:
 				WebDriverWait(self.driver, 10).until(
@@ -234,9 +253,8 @@ class App(ttk.Frame):
 				list_count_el = self.driver.find_element_by_class_name('list-count')
 				unclaimed_count = get_count(list_count_el.text)
 
-				#get latest send list
+				#get latest send list and keyword list
 				self.update_to_send()
-				#get latest keyword list
 				self.update_kw_list()
 
 				#check which ones are still open
@@ -249,12 +267,10 @@ class App(ttk.Frame):
 				elif not any(cw.open for cw in self.to_send):
 					msg = "No target window open!"
 				else:
-					ready = []
 					for cw in self.to_send:
 						if cw.open:
 							ready.append(cw)
 
-				#change light
 				if ready == self.to_send:
 					self.change_light("green")
 				else:
@@ -289,22 +305,22 @@ class App(ttk.Frame):
 				self.pb.start()
 
 				if unclaimed_count != initial_count:
-					if unclaimed_count == "0":
+					if unclaimed_count == 0:
 						for cw in ready:
 							cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.', 3)
-					elif unclaimed_count > initial_count: #do stuff
+					elif unclaimed_count > initial_count:
 						t3 = datetime.datetime.now()
 						self.driver.maximize_window()
 
 						#auto claim
 						def add_comment():
-							pyautogui.moveTo(708, 1143)
+							pyautogui.moveTo(self.comment_x_coord, self.comment_y_coord)
 							pyautogui.click()
 							pyautogui.press("1")
 							pyautogui.press("enter")
 
 						def close_comment():
-							pyautogui.moveTo(979, 1280)
+							pyautogui.moveTo(self.close_x_coord, self.close_y_coord)
 							pyautogui.click()						
 
 						claimed_titles = ""
@@ -434,6 +450,79 @@ class LoginDetails:
 			popupMessage("Successful", "Login details saved.")
 			self.t.destroy()
 
+class ClickCoords:
+	def __init__(self):
+		self.t = tk.Toplevel()
+		self.t.resizable(False, False)
+		self.setup_widgets()
+		self.load()
+
+	def load(self):
+		self.click_coords = Database("click_coords.json")
+		if self.click_coords.data:
+			comment_x_coord = self.click_coords.data['comment_x_coord']
+			comment_y_coord = self.click_coords.data['comment_y_coord']
+			self.comment_x_entry.insert(0, comment_x_coord)
+			self.comment_y_entry.insert(0, comment_y_coord)
+
+			close_x_coord = self.click_coords.data['close_x_coord']
+			close_y_coord = self.click_coords.data['close_y_coord']
+			self.close_x_entry.insert(0, close_x_coord)
+			self.close_y_entry.insert(0, close_y_coord)
+
+	def setup_widgets(self):
+		self.l1 = ttk.Label(self.t, text="Comment Box Coords")
+		self.comment_x_label = ttk.Label(self.t, text="X Coord: ")
+		self.comment_y_label = ttk.Label(self.t, text="Y Coord: ")
+		self.comment_x_entry = ttk.Entry(self.t, width=20)
+		self.comment_y_entry = ttk.Entry(self.t, width=20)
+		self.save_button1 = ttk.Button(self.t, text="Save", command=self.save1)
+
+		self.l1.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+		self.comment_x_label.grid(row=1, column=0, padx=10, pady=10)
+		self.comment_x_entry.grid(row=1, column=1, padx=10, pady=10)
+		self.comment_y_label.grid(row=2, column=0, padx=10, pady=10)
+		self.comment_y_entry.grid(row=2, column=1, padx=10, pady=10)
+		self.save_button1.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+
+		self.l2 = ttk.Label(self.t, text="Close Box Coords")
+		self.close_x_label = ttk.Label(self.t, text="X Coord: ")
+		self.close_y_label = ttk.Label(self.t, text="Y Coord: ")
+		self.close_x_entry = ttk.Entry(self.t, width=20)
+		self.close_y_entry = ttk.Entry(self.t, width=20)
+		self.save_button2 = ttk.Button(self.t, text="Save", command=self.save2)
+
+		self.l2.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
+		self.close_x_label.grid(row=5, column=0, padx=10, pady=10)
+		self.close_x_entry.grid(row=5, column=1, padx=10, pady=10)
+		self.close_y_label.grid(row=6, column=0, padx=10, pady=10)
+		self.close_y_entry.grid(row=6, column=1, padx=10, pady=10)
+		self.save_button2.grid(row=7, column=0, columnspan=2, padx=10, pady=10)
+
+	def save1(self):
+		comment_x_coord = int(self.comment_x_entry.get())
+		comment_y_coord = int(self.comment_y_entry.get())
+
+		if not (comment_x_coord and comment_y_coord):
+			popupMessage("Error", "Please input all fields.")
+		else:
+			self.click_coords.data["comment_x_coord"] = comment_x_coord
+			self.click_coords.data["comment_y_coord"] = comment_y_coord
+			self.click_coords.save()
+			popupMessage("Successful", "Click box coords saved.")
+
+	def save2(self):
+		close_x_coord = int(self.close_x_entry.get())
+		close_y_coord = int(self.close_y_entry.get())
+
+		if not (close_x_coord and close_y_coord):
+			popupMessage("Error", "Please input all fields.")
+		else:
+			self.click_coords.data["close_x_coord"] = close_x_coord
+			self.click_coords.data["close_y_coord"] = close_y_coord
+			self.click_coords.save()
+			popupMessage("Successful", "Close box coords saved.")
+			
 class SendMessageLocations:
 	def __init__(self):
 		self.t = tk.Toplevel()
@@ -812,6 +901,7 @@ def main():
 	settings_menu.add_command(label="Manage Send Message Locations", command=SendMessageLocations)
 	settings_menu.add_command(label="Manual Send", command=ManualSend)
 	settings_menu.add_command(label="Auto Claim", command=AutoClaim)
+	settings_menu.add_command(label="Click Coords", command=ClickCoords)
 
 	root.update()
 	root.minsize(root.winfo_width(), root.winfo_height())
