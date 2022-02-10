@@ -28,6 +28,7 @@ pip install -r requirements.txt
 ```
 main.py
 ```
+Note: If installing from requirements.txt gives you errors, try installing all the dependencies manually.
 
 ## Setup
 1. Input your login details in settings.<br/>
