@@ -16,6 +16,7 @@ import datetime
 import traceback
 import pyperclip
 from pynput import mouse
+import webbrowser
 
 def popupMessage(title, message, windowToClose=None):
 	"""
@@ -962,6 +963,22 @@ class AutoClaim:
 		self.auto_claim_info.data["negative_keywords"] = self.negative_keywords
 		self.auto_claim_info.save()
 
+class About:
+	def __init__(self):
+		self.t = tk.Toplevel()
+		self.t.resizable(False, False)
+		self.setup_widgets()
+
+	def setup_widgets(self):
+		l = ttk.Label(self.t, text="For more information, visit the program's GitHub page.")
+		b = ttk.Button(self.t, text="Click to Visit", command=self.visit)
+
+		l.grid(row=0, column=0, padx=20, pady=10)
+		b.grid(row=1, column=0, padx=20, pady=10)
+
+	def visit(self):
+		webbrowser.open_new_tab("https://github.com/csjaugustus/tapdtracker")
+
 def main():
 	root = tk.Tk()
 
@@ -983,6 +1000,7 @@ def main():
 	settings_menu.add_command(label="Manual Send", command=ManualSend)
 	settings_menu.add_command(label="Auto Claim", command=AutoClaim)
 	settings_menu.add_command(label="Click Coords", command=ClickCoords)
+	settings_menu.add_command(label="About", command=About)
 
 	root.update()
 	root.minsize(root.winfo_width(), root.winfo_height())
