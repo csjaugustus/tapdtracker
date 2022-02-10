@@ -141,7 +141,6 @@ class App(ttk.Frame):
 			self.t.start()
 
 	def load_imgs(self):
-		#load r&g lights
 		self.red_light = Image.open("files\\redlight.png")
 		self.red_light = self.red_light.resize((20, 20))
 		self.red_light = ImageTk.PhotoImage(self.red_light)
@@ -388,6 +387,12 @@ class App(ttk.Frame):
 					t1 = t2
 
 class Database:
+	"""
+	Easily creates and manages save files.
+	Will create file if it does not exist.
+	Save file easily save() method.
+	"""
+
 	def __init__(self, save_file):
 		self.path = f"files\\{save_file}"
 		self.load()
@@ -408,6 +413,10 @@ class Database:
 			json.dump(self.data, f, indent=4)
 
 class LoginDetails:
+	"""
+	Stores login details for TAPD.
+	"""
+
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
@@ -451,6 +460,11 @@ class LoginDetails:
 			self.t.destroy()
 
 class ClickCoords:
+	"""
+	Stores coordinates for auto-claiming.
+	It takes 2 coords: the coords of the comment box, and coords to close the popup window.
+	"""
+
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
@@ -524,6 +538,10 @@ class ClickCoords:
 			popupMessage("Successful", "Close box coords saved.")
 			
 class SendMessageLocations:
+	"""
+	Manages where update messages are sent.
+	"""
+
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
@@ -642,6 +660,11 @@ class SendMessageLocations:
 			self.y_entry.delete(0, 'end')
 
 class ManualSend:
+	"""
+	Manually sends a given message to activated windows for a certain number of times.
+	Mainly for testing purposes.
+	"""
+
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
@@ -703,6 +726,10 @@ class ManualSend:
 			popupMessage("Error", "No target window found. Activate at least one window.")
 
 class AutoClaim:
+	"""
+	Sets keywords for videos to automatically claim/not to claim.
+	"""
+
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
