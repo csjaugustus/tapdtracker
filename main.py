@@ -87,6 +87,7 @@ class App(ttk.Frame):
 
 	def __init__(self, parent):
 		ttk.Frame.__init__(self, parent)
+		self.parent = parent
 		self.t = threading.Thread(target=self.track)
 
 		#variables
@@ -189,9 +190,9 @@ class App(ttk.Frame):
 
 	def pin_window(self, event):
 		if not self.pin.get():
-			root.attributes("-topmost", True)
+			self.parent.attributes("-topmost", True)
 		else:
-			root.attributes("-topmost", False)
+			self.parent.attributes("-topmost", False)
 
 	def change_light(self, colour):
 		if colour == "red":
