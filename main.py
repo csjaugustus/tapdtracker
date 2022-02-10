@@ -15,6 +15,7 @@ import time
 import datetime
 import traceback
 import pyperclip
+from pynput import mouse
 
 def popupMessage(title, message, windowToClose=None):
 	"""
@@ -471,6 +472,7 @@ class ClickCoords:
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
+		self.t.attributes("-topmost", True)
 		self.setup_widgets()
 		self.load()
 
@@ -489,13 +491,15 @@ class ClickCoords:
 
 	def setup_widgets(self):
 		self.l1 = ttk.Label(self.t, text="Comment Box Coords")
+		self.b1 = ttk.Button(self.t, text="Get Coords", command=self.get1)
 		self.comment_x_label = ttk.Label(self.t, text="X Coord: ")
 		self.comment_y_label = ttk.Label(self.t, text="Y Coord: ")
 		self.comment_x_entry = ttk.Entry(self.t, width=20)
 		self.comment_y_entry = ttk.Entry(self.t, width=20)
 		self.save_button1 = ttk.Button(self.t, text="Save", command=self.save1)
 
-		self.l1.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+		self.l1.grid(row=0, column=0, padx=10, pady=10)
+		self.b1.grid(row=0, column=1, padx=10, pady=10)
 		self.comment_x_label.grid(row=1, column=0, padx=10, pady=10)
 		self.comment_x_entry.grid(row=1, column=1, padx=10, pady=10)
 		self.comment_y_label.grid(row=2, column=0, padx=10, pady=10)
@@ -503,18 +507,43 @@ class ClickCoords:
 		self.save_button1.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
 		self.l2 = ttk.Label(self.t, text="Close Box Coords")
+		self.b2 = ttk.Button(self.t, text="Get Coords", command=self.get2)
 		self.close_x_label = ttk.Label(self.t, text="X Coord: ")
 		self.close_y_label = ttk.Label(self.t, text="Y Coord: ")
 		self.close_x_entry = ttk.Entry(self.t, width=20)
 		self.close_y_entry = ttk.Entry(self.t, width=20)
 		self.save_button2 = ttk.Button(self.t, text="Save", command=self.save2)
 
-		self.l2.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
+		self.l2.grid(row=4, column=0, padx=10, pady=10)
+		self.b2.grid(row=4, column=1, padx=10, pady=10)
 		self.close_x_label.grid(row=5, column=0, padx=10, pady=10)
 		self.close_x_entry.grid(row=5, column=1, padx=10, pady=10)
 		self.close_y_label.grid(row=6, column=0, padx=10, pady=10)
 		self.close_y_entry.grid(row=6, column=1, padx=10, pady=10)
 		self.save_button2.grid(row=7, column=0, columnspan=2, padx=10, pady=10)
+
+	def get_coords(self, x_entry, y_entry):
+		def on_click(x, y, button, pressed):
+			if button == mouse.Button.left:
+				if x_entry.get():
+					x_entry.delete(0, tk.END)
+				if y_entry.get():
+					y_entry.delete(0, tk.END)
+				x_entry.insert(0, x)
+				y_entry.insert(0, y)
+				return False 
+
+		listener = mouse.Listener(on_click=on_click)
+		listener.start()
+		listener.join()
+
+	def get1(self):
+		t = threading.Thread(target= lambda x_entry=self.comment_x_entry, y_entry=self.comment_y_entry: self.get_coords(x_entry, y_entry))
+		t.start()
+
+	def get2(self):
+		t = threading.Thread(target= lambda x_entry=self.close_x_entry, y_entry=self.close_y_entry: self.get_coords(x_entry, y_entry))
+		t.start()
 
 	def save1(self):
 		comment_x_coord = int(self.comment_x_entry.get())
@@ -548,6 +577,7 @@ class SendMessageLocations:
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
+		self.t.attributes("-topmost", True)
 		self.setup_widgets()
 		self.load()
 
@@ -560,6 +590,7 @@ class SendMessageLocations:
 		self.y_label = ttk.Label(self.t, text="Y: ")
 		self.y_entry = ttk.Entry(self.t, width=5)
 		self.save_button = ttk.Button(self.t, text="Save", command=self.save)
+		self.get_button = ttk.Button(self.t, text="Get Coords", command=self.get)
 
 		self.l.grid(row=0, column=0, columnspan=4)
 		self.name_label.grid(row=1, column=0, padx=10, pady=10)
@@ -568,7 +599,8 @@ class SendMessageLocations:
 		self.x_entry.grid(row=2, column=1, padx=10, pady=10)
 		self.y_label.grid(row=2, column=2, padx=10, pady=10)
 		self.y_entry.grid(row=2, column=3, padx=10, pady=10)
-		self.save_button.grid(row=3, column=0, columnspan=4, padx=10, pady=10)
+		self.save_button.grid(row=3, column=1, padx=10, pady=10)
+		self.get_button.grid(row=3, column=3, padx=10, pady=10)
 
 	def load(self):
 		self.entries = {}
@@ -598,6 +630,25 @@ class SendMessageLocations:
 					cb_var.set(True)
 
 				self.r += 1
+
+	def get(self):
+		def get_coords(x_entry, y_entry):
+			def on_click(x, y, button, pressed):
+				if button == mouse.Button.left:
+					if x_entry.get():
+						x_entry.delete(0, tk.END)
+					if y_entry.get():
+						y_entry.delete(0, tk.END)
+					x_entry.insert(0, x)
+					y_entry.insert(0, y)
+					return False 
+
+			listener = mouse.Listener(on_click=on_click)
+			listener.start()
+			listener.join()
+
+		t = threading.Thread(target= lambda x_entry=self.x_entry, y_entry=self.y_entry: get_coords(x_entry, y_entry))
+		t.start()
 
 	def toggle(self, event):
 		cb = event.widget
