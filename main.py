@@ -66,7 +66,6 @@ class ChatWindow:
 
 		window.minimize()
 
-
 class App(ttk.Frame):
 	def __init__(self, parent):
 		ttk.Frame.__init__(self)
@@ -77,7 +76,7 @@ class App(ttk.Frame):
 		self.status = tk.StringVar(value="Status: Program not running.")
 		self.output = tk.StringVar(value="No output.")
 
-		#setup widgets
+		self.load_imgs()
 		self.setup_widgets()
 
 	def initial_check(self):
@@ -119,8 +118,17 @@ class App(ttk.Frame):
 		if self.initial_check():
 			self.t.start()
 
+	def load_imgs(self):
+		#load r&g lights
+		self.red_light = Image.open("files\\redlight.png")
+		self.red_light = self.red_light.resize((20, 20))
+		self.red_light = ImageTk.PhotoImage(self.red_light)
+		self.green_light = Image.open("files\\greenlight.png")
+		self.green_light = self.green_light.resize((20, 20))
+		self.green_light = ImageTk.PhotoImage(self.green_light)		
+
 	def setup_widgets(self):
-		self.light_label = tk.Label(self, image=red_light)
+		self.light_label = tk.Label(self, image=self.red_light)
 		self.pin_button = ttk.Checkbutton(self, text="Pin", variable=self.pin, style="Switch.TCheckbutton")
 		self.status_label = ttk.Label(self,textvariable=self.status)
 		self.output_label = ttk.Label(self, textvariable=self.output, borderwidth=1, relief="groove")
@@ -166,12 +174,12 @@ class App(ttk.Frame):
 
 	def change_light(self, colour):
 		if colour == "red":
-			self.light_label.configure(image=red_light)
-			self.light_label.image = red_light
+			self.light_label.configure(image=self.red_light)
+			self.light_label.image = self.red_light
 			self.light_label.grid(row=0, column=0, sticky=tk.W)
 		elif colour == "green":
-			self.light_label.configure(image=green_light)
-			self.light_label.image = green_light
+			self.light_label.configure(image=self.green_light)
+			self.light_label.image = self.green_light
 			self.light_label.grid(row=0, column=0, sticky=tk.W)
 
 	def track(self):
@@ -784,40 +792,34 @@ class AutoClaim:
 		self.auto_claim_info.data["negative_keywords"] = self.negative_keywords
 		self.auto_claim_info.save()
 
+def main():
+	root = tk.Tk()
 
-root = tk.Tk()
+	root.title("TAPD Tracker")
+	root.resizable(False, False)
+	icon = tk.PhotoImage(file = "files\\tapdicon.png")
+	root.iconphoto(True, icon)
+	root.tk.call("source", "sun-valley.tcl")
+	root.tk.call("set_theme", "light")
+	app = App(root)
+	app.pack(fill="both", expand=True)
 
-#load r&g lights
-red_light = Image.open("files\\redlight.png")
-red_light = red_light.resize((20, 20))
-red_light = ImageTk.PhotoImage(red_light)
-green_light = Image.open("files\\greenlight.png")
-green_light = green_light.resize((20, 20))
-green_light = ImageTk.PhotoImage(green_light)
+	main_menu = tk.Menu(root)
+	root.config(menu=main_menu)
+	settings_menu = tk.Menu(main_menu)
+	main_menu.add_cascade(label="Settings", menu=settings_menu)
+	settings_menu.add_command(label="Change Login Details", command=LoginDetails)
+	settings_menu.add_command(label="Manage Send Message Locations", command=SendMessageLocations)
+	settings_menu.add_command(label="Manual Send", command=ManualSend)
+	settings_menu.add_command(label="Auto Claim", command=AutoClaim)
 
-root.title("TAPD Tracker")
-root.resizable(False, False)
-icon = tk.PhotoImage(file = "files\\tapdicon.png")
-root.iconphoto(True, icon)
-root.tk.call("source", "sun-valley.tcl")
-root.tk.call("set_theme", "light")
-app = App(root)
-app.pack(fill="both", expand=True)
+	root.update()
+	root.minsize(root.winfo_width(), root.winfo_height())
+	x_cordinate = int((root.winfo_screenwidth() / 2) - (root.winfo_width() / 2))
+	y_cordinate = int((root.winfo_screenheight() / 2) - (root.winfo_height() / 2))
+	root.geometry("+{}+{}".format(x_cordinate, y_cordinate - 20))
 
-main_menu = tk.Menu(root)
-root.config(menu=main_menu)
-settings_menu = tk.Menu(main_menu)
-main_menu.add_cascade(label="Settings", menu=settings_menu)
-settings_menu.add_command(label="Change Login Details", command=lambda: LoginDetails())
-settings_menu.add_command(label="Manage Send Message Locations", command= lambda: SendMessageLocations())
-settings_menu.add_command(label="Manual Send", command=lambda: ManualSend())
-settings_menu.add_command(label="Auto Claim", command=lambda: AutoClaim())
+	root.mainloop()
 
-root.update()
-root.minsize(root.winfo_width(), root.winfo_height())
-x_cordinate = int((root.winfo_screenwidth() / 2) - (root.winfo_width() / 2))
-y_cordinate = int((root.winfo_screenheight() / 2) - (root.winfo_height() / 2))
-root.geometry("+{}+{}".format(x_cordinate, y_cordinate - 20))
-
-root.mainloop()
-
+if __name__ == "__main__":
+	main()
