@@ -1,7 +1,7 @@
 # TAPD Tracker
-Tracks when TAPD updates and then sends a message to target chat windows.
-Can also auto-claim videos containing certain keywords.
-chromedriver.exe only works for Chrome v92. Visit https://chromedriver.chromium.org/downloads to get the correct version.
+Tracks when TAPD updates and then sends a message to target chat windows.<br/>
+Can also auto-claim videos containing certain keywords.<br/>
+chromedriver.exe only works for Chrome v92. Visit https://chromedriver.chromium.org/downloads to get the correct version.<br/>
 Dependencies: Selenium, pyautogui, pygetwindow, Pillow, pynput, pyperclip.
 
 ## Table of Contents
@@ -30,9 +30,9 @@ main.py
 ```
 
 ## Setup
-1. Input your login details in settings.
-2. Register at least one target window in settings. You can choose not to activate the registered window.
-3. If you wish to auto claim videos, set keywords in the auto claim menu.
+1. Input your login details in settings.<br/>
+2. Register at least one target window in settings. You can choose not to activate the registered window.<br/>
+3. If you wish to auto claim videos, set keywords in the auto claim menu.<br/>
 Note: Target windows and keywords can be edited during runtime. But login details cannot be changed once the program starts running.
 
 ## Main Interface
