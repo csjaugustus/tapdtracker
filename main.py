@@ -25,11 +25,11 @@ def login(url, driver, username, password):
 				EC.presence_of_element_located((By.ID, "username"))
 			)
 		finally:
-			username_box = driver.find_element_by_id("username")
-			password_box = driver.find_element_by_id("password_input")
+			username_box = driver.find_element(By.ID, "username")
+			password_box = driver.find_element(By.ID, "password_input")
 			username_box.send_keys(username)
 			password_box.send_keys(password)
-			login_button = driver.find_element_by_id("tcloud_login_button")
+			login_button = driver.find_element(By.ID, "tcloud_login_button")
 			login_button.click()
 
 def popupMessage(title, message, windowToClose=None):
@@ -244,7 +244,7 @@ class App(ttk.Frame):
 				EC.presence_of_element_located((By.CLASS_NAME, "list-count"))
 			)
 		finally:
-			list_count_el = self.driver.find_element_by_class_name('list-count')
+			list_count_el = self.driver.find_element(By.CLASS_NAME, 'list-count')
 			initial_count = get_count(list_count_el.text)
 		
 		t1 = 0
@@ -258,7 +258,7 @@ class App(ttk.Frame):
 					EC.presence_of_element_located((By.CLASS_NAME, "list-count"))
 					)
 			finally:
-				list_count_el = self.driver.find_element_by_class_name('list-count')
+				list_count_el = self.driver.find_element(By.CLASS_NAME, 'list-count')
 				unclaimed_count = get_count(list_count_el.text)
 
 				#get latest send list and keyword list
@@ -335,11 +335,11 @@ class App(ttk.Frame):
 						if self.keywords:
 							to_click = []
 							self.driver.switch_to.default_content()
-							sections = self.driver.find_elements_by_class_name("title-name")
+							sections = self.driver.find_elements(By.CLASS_NAME, "title-name")
 							for x in sections:
 								if x.text == "待领取":
-									main_box_el = x.find_element_by_xpath("..").find_element_by_xpath("..").find_element_by_xpath("..")
-									found_elements = main_box_el.find_elements_by_class_name("card-name")
+									main_box_el = x.find_element(By.XPATH, "..").find_element(By.XPATH, "..").find_element(By.XPATH, "..")
+									found_elements = main_box_el.find_elements(By.CLASS_NAME, "card-name")
 									total_indexes = len(found_elements)
 							if self.keywords == "all":
 								to_click = [e for e in found_elements if not any(nkw in e.text for nkw in self.negative_keywords)]
@@ -1059,6 +1059,7 @@ class TestRun:
 		if not login_details.data or not login_details.data["Test Run"]["selected"]:
 			popupMessage("Error", "Test Run preset not created or not selected.", windowToClose=self.t)
 			return False
+		return True
 
 	def test_run(self):
 		def run():
@@ -1079,7 +1080,7 @@ class TestRun:
 				comment_box.click()			
 			pyautogui.write("Test Movie Name")
 			pyautogui.press("enter")
-			# driver.minimize_window()
+
 		if self.initial_check():
 			t = threading.Thread(target=run)
 			t.start()
