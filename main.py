@@ -351,8 +351,9 @@ class App(ttk.Frame):
 										to_click.append(e)
 										indx = found_elements.index(e)
 										indexes.append(indx)
-								first_index = indexes[0]
-								if first_index > total_indexes/2:
+								in_first_half = sum(1 for i in indexes if i < total_indexes/2)
+								in_second_half = sum(1 for i in indexes if i >= total_indexes/2)
+								if in_second_half > in_first_half:
 									to_click.reverse()
 
 							for e in to_click:
