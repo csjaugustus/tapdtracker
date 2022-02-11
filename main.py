@@ -20,18 +20,18 @@ import webbrowser
 
 def login(url, driver, username, password):
 	"""Uses a driver to log onto a TAPD board."""
-		driver.get(url)
-		try:
-			WebDriverWait(driver, 10).until(
-				EC.presence_of_element_located((By.ID, "username"))
-			)
-		finally:
-			username_box = driver.find_element(By.ID, "username")
-			password_box = driver.find_element(By.ID, "password_input")
-			username_box.send_keys(username)
-			password_box.send_keys(password)
-			login_button = driver.find_element(By.ID, "tcloud_login_button")
-			login_button.click()
+	driver.get(url)
+	try:
+		WebDriverWait(driver, 10).until(
+			EC.presence_of_element_located((By.ID, "username"))
+		)
+	finally:
+		username_box = driver.find_element(By.ID, "username")
+		password_box = driver.find_element(By.ID, "password_input")
+		username_box.send_keys(username)
+		password_box.send_keys(password)
+		login_button = driver.find_element(By.ID, "tcloud_login_button")
+		login_button.click()
 
 def popupMessage(title, message, windowToClose=None):
 	"""
