@@ -18,6 +18,20 @@ import pyperclip
 from pynput import mouse
 import webbrowser
 
+def login(url, driver, username, password):
+		driver.get(url)
+		try:
+			WebDriverWait(driver, 10).until(
+				EC.presence_of_element_located((By.ID, "username"))
+			)
+		finally:
+			username_box = driver.find_element_by_id("username")
+			password_box = driver.find_element_by_id("password_input")
+			username_box.send_keys(username)
+			password_box.send_keys(password)
+			login_button = driver.find_element_by_id("tcloud_login_button")
+			login_button.click()
+
 def popupMessage(title, message, windowToClose=None):
 	"""
 	Sends a popup message. 
@@ -113,6 +127,8 @@ class App(ttk.Frame):
 		errors = []
 		if not login_details.data:
 			errors.append("Please input login details.")
+		elif not any(login_details.data[p]["selected"] for p in login_details.data):
+			errors.append("No preset selected in login details.")
 		if not auto_claim_info.data:
 			auto_claim_info.data = {
 			"all_state" : False,
@@ -131,8 +147,11 @@ class App(ttk.Frame):
 			popupMessage("Error(s)", "\n\n".join(e for e in errors))
 			return False
 
-		self.username = login_details.data['username']
-		self.password = login_details.data['password']
+		for p in login_details.data:
+			if login_details.data[p]["selected"]:
+				self.username = login_details.data[p]['username']
+				self.password = login_details.data[p]['password']
+				self.url = f"https://www.tapd.cn/{login_details.data[p]['tapd_id']}"
 		self.comment_x_coord = click_coords.data['comment_x_coord']
 		self.comment_y_coord = click_coords.data['comment_y_coord']
 		self.close_x_coord = click_coords.data['close_x_coord']
@@ -213,25 +232,12 @@ class App(ttk.Frame):
 
 		self.status.set("Status: Program is running.")
 		self.start_button.config(state=tk.DISABLED)
-
-		#personal: 64747886 rrtv: 43882502
-		self.driver = webdriver.Chrome()
-		self.driver.get("https://www.tapd.cn/43882502")
-		self.driver.minimize_window()
 		self.output.set("Logging in...")
 
-		try:
-			WebDriverWait(self.driver, 10).until(
-				EC.presence_of_element_located((By.ID, "username"))
-			)
-		finally:
-			username_box = self.driver.find_element_by_id("username")
-			password_box = self.driver.find_element_by_id("password_input")
-			username_box.send_keys(self.username)
-			password_box.send_keys(self.password)
-			login_button = self.driver.find_element_by_id("tcloud_login_button")
-			login_button.click()
-			self.output.set("Logged in.")
+		self.driver = webdriver.Chrome()
+		self.driver.minimize_window()
+		login(self.url, self.driver, self.username, self.password)
+		self.output.set("Logged in.")
 
 		try:
 			WebDriverWait(self.driver, 10).until(
@@ -425,44 +431,95 @@ class LoginDetails:
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
-		self.setup_widgets()
 		self.load()
+		self.setup_widgets()
 
 	def load(self):
+		self.preset_var = tk.StringVar(value="— Select a preset —")
 		self.login_details = Database("login_details.json")
 		if self.login_details.data:
-			username = self.login_details.data['username']
-			password = self.login_details.data['password']
-			self.username_entry.insert(0, username)
-			self.password_entry.insert(0, password)
+			self.presets = self.login_details.data
+			for p in self.login_details.data:
+				if self.login_details.data[p]["selected"]:
+					self.preset_var.set(p)
+		else:
+			self.presets = ["— Select a preset —"]
 
 	def setup_widgets(self):
-		self.l = ttk.Label(self.t, text="Login Details")
-		self.username_label = ttk.Label(self.t, text="Username: ")
-		self.password_label = ttk.Label(self.t, text="Password: ")
-		self.username_entry = ttk.Entry(self.t, width=20)
-		self.password_entry = ttk.Entry(self.t, width=20, show="*")
-		self.save_button = ttk.Button(self.t, text="Save", command=self.save)
+		l = ttk.Label(self.t, text="Login Details")
+		preset_label = ttk.Label(self.t, text="Select Preset: ")
+		option_menu = tk.OptionMenu(self.t, self.preset_var, *self.presets)
+		add_button = ttk.Button(self.t, text="Add Preset", command=self.add_preset)
+		save_button = ttk.Button(self.t, text="Save", command=self.save)
 
-		self.l.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
-		self.username_label.grid(row=1, column=0, padx=10, pady=10)
-		self.username_entry.grid(row=1, column=1, padx=10, pady=10)
-		self.password_label.grid(row=2, column=0, padx=10, pady=10)
-		self.password_entry.grid(row=2, column=1, padx=10, pady=10)
-		self.save_button.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+		l.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+		preset_label.grid(row=1, column=0, padx=10, pady=10)
+		option_menu.grid(row=1, column=1, padx=10, pady=10)
+		add_button.grid(row=2, column=0, padx=10, pady=10)
+		save_button.grid(row=2, column=1, padx=10, pady=10)
 
-	def save(self):
+	def add_preset(self):
+		self.p = tk.Toplevel()
+		self.p.resizable(False, False)
+
+		l = ttk.Label(self.p, text="Add Preset")
+		preset_label = ttk.Label(self.p, text="Preset Name: ")
+		username_label = ttk.Label(self.p, text="Username: ")
+		password_label = ttk.Label(self.p, text="Password: ")
+		id_label = ttk.Label(self.p, text="TAPD Board ID: ")
+		self.preset_entry = ttk.Entry(self.p, width=20)
+		self.username_entry = ttk.Entry(self.p, width=20)
+		self.password_entry = ttk.Entry(self.p, width=20, show="*")
+		self.id_entry = ttk.Entry(self.p, width=20)
+		save_button = ttk.Button(self.p, text="Save", command=self.save_preset)
+
+		l.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+		preset_label.grid(row=1, column=0, padx=10, pady=10)
+		self.preset_entry.grid(row=1, column=1, padx=10, pady=10)
+		username_label.grid(row=2, column=0, padx=10, pady=10)
+		self.username_entry.grid(row=2, column=1, padx=10, pady=10)		
+		password_label.grid(row=3, column=0, padx=10, pady=10)
+		self.password_entry.grid(row=3, column=1, padx=10, pady=10)
+		id_label.grid(row=4, column=0, padx=10, pady=10)
+		self.id_entry.grid(row=4, column=1, padx=10, pady=10)
+		save_button.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
+
+	def save_preset(self):
+		preset_name = self.preset_entry.get()
 		username = self.username_entry.get()
 		password = self.password_entry.get()
+		tapd_id = self.id_entry.get()
 
-		if not (username and password):
+		if not (preset_name and username and password and tapd_id):
 			popupMessage("Error", "Please input all fields.")
 		else:
-			self.login_details.data["username"] = username
-			self.login_details.data["password"] = password
+			self.login_details.data[preset_name] = {
+			"username" : username,
+			"password" : password,
+			"tapd_id" : tapd_id,
+			"selected" : False,
+			}
 			self.login_details.save()
-			popupMessage("Successful", "Login details saved.")
-			self.t.destroy()
+			popupMessage("Successful", "Login details saved.", windowToClose=self.p)
+			self.update_presets()
+
+	def save(self):
+		preset_name = self.preset_var.get()
+		if preset_name == "— Select a preset —":
+			popupMessage("Error", "Please select a preset.")
+		else:
+			self.login_details.data[preset_name]["selected"] = True
+			for p in self.login_details.data:
+				if p != preset_name:
+					self.login_details.data[p]["selected"] = False
+			self.login_details.save()
+			popupMessage("Successful", "Login details saved.", windowToClose=self.t)
+
+	def update_presets(self):
+		self.t.destroy()
+		self.t = tk.Toplevel()
+		self.load()
+		self.setup_widgets()
 
 class ClickCoords:
 	"""
@@ -979,6 +1036,55 @@ class About:
 	def visit(self):
 		webbrowser.open_new_tab("https://github.com/csjaugustus/tapdtracker")
 
+class TestRun:
+	def __init__(self):
+		self.t = tk.Toplevel()
+		self.t.resizable(False, False)
+		self.setup_widgets()
+
+	def setup_widgets(self):
+		l = ttk.Label(self.t, text="Test Run")
+		b = ttk.Button(self.t, text="Go", command=self.test_run)
+
+		l.grid(row=0, column=0, padx=30, pady=10)
+		b.grid(row=1, column=0, padx=30, pady=10)
+
+	def initial_check(self):
+		login_details = Database("login_details.json")
+		try:
+			login_details.data["Test Run"]
+		except KeyError:
+			popupMessage("Error", "Test Run preset not created.", windowToClose=self.t)
+			return False
+		if not login_details.data or not login_details.data["Test Run"]["selected"]:
+			popupMessage("Error", "Test Run preset not created or not selected.", windowToClose=self.t)
+			return False
+
+	def test_run(self):
+		def run():
+			driver = webdriver.Chrome()
+			login("https://www.tapd.cn/64747886", driver, "15578073443", "antifuckingh4ck!")
+			driver.maximize_window()
+			try:
+				add_button = WebDriverWait(driver, 10).until(
+					EC.element_to_be_clickable((By.CLASS_NAME, "add-card-placeholder"))
+				)
+			finally:
+				add_button.click()
+			try:
+				comment_box = WebDriverWait(driver, 10).until(
+					EC.element_to_be_clickable((By.CLASS_NAME, "control-add-card"))
+				)
+			finally:
+				comment_box.click()			
+			pyautogui.write("Test Movie Name")
+			pyautogui.press("enter")
+			# driver.minimize_window()
+		if self.initial_check():
+			t = threading.Thread(target=run)
+			t.start()
+			self.t.destroy()
+
 def main():
 	root = tk.Tk()
 
@@ -1000,6 +1106,7 @@ def main():
 	settings_menu.add_command(label="Manual Send", command=ManualSend)
 	settings_menu.add_command(label="Auto Claim", command=AutoClaim)
 	settings_menu.add_command(label="Click Coords", command=ClickCoords)
+	settings_menu.add_command(label="Test Run", command=TestRun)
 	settings_menu.add_command(label="About", command=About)
 
 	root.update()
