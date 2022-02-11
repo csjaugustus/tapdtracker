@@ -19,6 +19,7 @@ from pynput import mouse
 import webbrowser
 
 def login(url, driver, username, password):
+	"""Uses a driver to log onto a TAPD board."""
 		driver.get(url)
 		try:
 			WebDriverWait(driver, 10).until(
@@ -115,9 +116,7 @@ class App(ttk.Frame):
 		self.setup_widgets()
 
 	def initial_check(self):
-		"""
-		Checks that all the necessary information is ready before starting.
-		"""
+		"""Checks that all the necessary information is ready before starting."""
 
 		login_details = Database("login_details.json")
 		windows_info = Database("windows_info.json")
@@ -188,7 +187,7 @@ class App(ttk.Frame):
 		self.start_button.grid(row=4, column=0, columnspan=3, pady=10)
 
 	def update_to_send(self):
-		#updates send list during runtime
+		"""Updates send list during runtime."""
 		self.to_send = []
 
 		windows_info = Database("windows_info.json")
@@ -200,7 +199,7 @@ class App(ttk.Frame):
 				self.to_send.append(cw)
 
 	def update_kw_list(self):
-		#updates keyword list during runtime
+		"""Updates keyword list during runtime."""
 		self.auto_claim_info = Database("auto_claim_info.json")
 		self.all_state = self.auto_claim_info.data["all_state"]
 		if self.all_state:
@@ -426,9 +425,7 @@ class Database:
 			json.dump(self.data, f, indent=4)
 
 class LoginDetails:
-	"""
-	Stores login details for TAPD.
-	"""
+	"""Stores login details for TAPD."""
 
 	def __init__(self):
 		self.t = tk.Toplevel()
@@ -630,9 +627,7 @@ class ClickCoords:
 			popupMessage("Successful", "Close box coords saved.")
 			
 class SendMessageLocations:
-	"""
-	Manages where update messages are sent.
-	"""
+	"""Manages where update messages are sent."""
 
 	def __init__(self):
 		self.t = tk.Toplevel()
@@ -810,7 +805,6 @@ class ManualSend:
 					self.ready.append(cw)
 
 	def send(self):
-		#error checking
 		if not (self.tb.get("1.0", "end") and self.e.get()):
 			popupMessage("Error", "Please input all fields.")
 			return
@@ -840,9 +834,7 @@ class ManualSend:
 			popupMessage("Error", "No target window found. Activate at least one window.")
 
 class AutoClaim:
-	"""
-	Sets keywords for videos to automatically claim/not to claim.
-	"""
+	"""Sets keywords for videos to automatically claim/not to claim."""
 
 	def __init__(self):
 		self.t = tk.Toplevel()
@@ -1023,6 +1015,8 @@ class AutoClaim:
 		self.auto_claim_info.save()
 
 class About:
+	"""Gives link to GitHub Page."""
+
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
@@ -1039,6 +1033,8 @@ class About:
 		webbrowser.open_new_tab("https://github.com/csjaugustus/tapdtracker")
 
 class TestRun:
+	"""Automatically does a test run on Test Run preset."""
+	
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
