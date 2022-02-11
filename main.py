@@ -149,6 +149,7 @@ class App(ttk.Frame):
 
 		for p in login_details.data:
 			if login_details.data[p]["selected"]:
+				self.name = p
 				self.username = login_details.data[p]['username']
 				self.password = login_details.data[p]['password']
 				self.url = f"https://www.tapd.cn/{login_details.data[p]['tapd_id']}"
@@ -230,7 +231,7 @@ class App(ttk.Frame):
 			pattern = re.compile("\\d+")
 			return int(pattern.findall(text)[0])
 
-		self.status.set("Status: Program is running.")
+		self.status.set("Status: Program is launching.")
 		self.start_button.config(state=tk.DISABLED)
 		self.output.set("Logging in...")
 
@@ -238,6 +239,7 @@ class App(ttk.Frame):
 		self.driver.minimize_window()
 		login(self.url, self.driver, self.username, self.password)
 		self.output.set("Logged in.")
+		self.status.set(f"Status: Logged into {self.name} account.")
 
 		try:
 			WebDriverWait(self.driver, 10).until(
