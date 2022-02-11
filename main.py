@@ -17,6 +17,7 @@ import traceback
 import pyperclip
 from pynput import mouse
 import webbrowser
+from image_copying import list_to_image
 
 def login(url, driver, username, password):
 	"""Uses a driver to log onto a TAPD board."""
@@ -75,7 +76,7 @@ class ChatWindow:
 		else:
 			self.open = False
 
-	def send(self, msg, times, chinese=False):
+	def send(self, msg, times, to_img_list=False):
 		window = gw.getWindowsWithTitle(self.title)[0]
 		all_windows = gw.getAllWindows()
 
@@ -84,12 +85,12 @@ class ChatWindow:
 		window.maximize()
 		pyautogui.moveTo(self.x, self.y)
 		pyautogui.click()
-		if not chinese:
+		if not to_img_list:
 			for i in range(times):
 				pyautogui.write(msg)
 				pyautogui.press('enter')
 		else:
-			pyperclip.copy(msg)
+			list_to_image(msg) #copies image to clipboard
 			for i in range(times):
 				pyautogui.hotkey("ctrl", "v")
 				pyautogui.press('enter')
@@ -368,14 +369,14 @@ class App(ttk.Frame):
 
 							t4 = datetime.datetime.now()
 
-							claimed_titles = ", ".join(e.text for e in to_click)
+						claimed = [e.text for e in to_click]
 
 						self.output.set("TAPD has been updated!")
 						for cw in ready:
 							cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 1)
-						if claimed_titles:
+						if claimed:
 							for cw in ready:
-								cw.send(f"Claimed videos: {claimed_titles}", 1, chinese=True)
+								cw.send(claimed, 1, to_img_list=True)
 							self.output.set(f"Detected update at {t3.strftime('%H:%M:%S')}hrs.\nClaimed {len(to_click)} videos in {round((t4-t3).total_seconds(), 2)}s.")
 
 						self.pb.stop()
