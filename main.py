@@ -375,10 +375,10 @@ class App(ttk.Frame):
 									EC.element_to_be_clickable((By.CLASS_NAME, "editor-area"))
 									)
 								finally:
-									if detect_image("files\\1.png"):
+									result = detect_image("files\\1.png")
+									if result:
 										commented.append(e.text)
-										user_imgs.append(crop_full(detect_image("files\\1.png")))
-
+										user_imgs.append(crop_full(result))
 									else:
 										add_comment()
 										claimed.append(e.text)
