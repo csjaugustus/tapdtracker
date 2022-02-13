@@ -394,11 +394,11 @@ class App(ttk.Frame):
 						if claimed:
 							for cw in ready:
 								cw.send(claimed, 1, to_img_list=True, img_title=f"Claimed {len(claimed)} video(s):")
-							output = f"Detected update at {t3.strftime('%H:%M:%S')}hrs.\nClaimed {len(claimed)} video(s) in {round((t4-t3).total_seconds(), 2)}s."
+							output = f"Detected update at {t3.strftime('%H:%M:%S')}hrs.\nClaimed {len(claimed)} video(s) in {round((t4-t3).total_seconds(), 2)}s.\n"
 						if commented:
 							for cw in ready:
 								cw.send(commented, 1, to_img_list=True, img_title=f"Did not claim the following {len(commented)} video(s) because someone else commented:", user_imgs=user_imgs)
-							output += f"\nMissed {len(commented)} video(s)."
+							output += f"Missed {len(commented)} video(s)."
 
 						if output:
 							self.output.set(output)
