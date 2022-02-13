@@ -18,6 +18,7 @@ import pyperclip
 from pynput import mouse
 import webbrowser
 from image_copying import list_to_image
+from image_detection import detect_image, crop_full
 
 def login(url, driver, username, password):
 	"""Uses a driver to log onto a TAPD board."""
@@ -76,7 +77,7 @@ class ChatWindow:
 		else:
 			self.open = False
 
-	def send(self, msg, times, to_img_list=False):
+	def send(self, msg, times, to_img_list=False, img_title=None, user_imgs=None):
 		window = gw.getWindowsWithTitle(self.title)[0]
 		all_windows = gw.getAllWindows()
 
@@ -90,7 +91,12 @@ class ChatWindow:
 				pyautogui.write(msg)
 				pyautogui.press('enter')
 		else:
-			list_to_image(msg) #copies image to clipboard
+			if user_imgs and img_title:
+				list_to_image(msg, img_title, user_imgs)
+			elif img_title:
+				list_to_image(msg, img_title) #copies image to clipboard
+			else:
+				list_to_image(msg)
 			for i in range(times):
 				pyautogui.hotkey("ctrl", "v")
 				pyautogui.press('enter')
@@ -357,6 +363,11 @@ class App(ttk.Frame):
 								if in_second_half > in_first_half:
 									to_click.reverse()
 
+
+							commented = []
+							user_imgs = []
+							claimed = []
+
 							for e in to_click:
 								e.click()
 								try:
@@ -364,20 +375,33 @@ class App(ttk.Frame):
 									EC.element_to_be_clickable((By.CLASS_NAME, "editor-area"))
 									)
 								finally:
-									add_comment()
+									if detect_image("files\\1.png"):
+										commented.append(e.text)
+										user_imgs.append(crop_full(detect_image("files\\1.png")))
+
+									else:
+										add_comment()
+										claimed.append(e.text)
 									close_comment()
 
 							t4 = datetime.datetime.now()
 
-						claimed = [e.text for e in to_click]
-
 						self.output.set("TAPD has been updated!")
 						for cw in ready:
 							cw.send('TAPD HAS BEEN UPDATED. https://www.tapd.cn/43882502', 1)
+
+						output = ""
 						if claimed:
 							for cw in ready:
-								cw.send(claimed, 1, to_img_list=True)
-							self.output.set(f"Detected update at {t3.strftime('%H:%M:%S')}hrs.\nClaimed {len(to_click)} videos in {round((t4-t3).total_seconds(), 2)}s.")
+								cw.send(claimed, 1, to_img_list=True, img_title=f"Claimed {len(claimed)} video(s):")
+							output = f"Detected update at {t3.strftime('%H:%M:%S')}hrs.\nClaimed {len(claimed)} video(s) in {round((t4-t3).total_seconds(), 2)}s."
+						if commented:
+							for cw in ready:
+								cw.send(commented, 1, to_img_list=True, img_title=f"Did not claim the following {len(commented)} videos because someone else commented:", user_imgs=user_imgs)
+							output += f"\nMissed {len(commented)} videos."
+
+						if output:
+							self.output.set(output)
 
 						self.pb.stop()
 						self.status.set("Status: Program has finished.")
@@ -1043,11 +1067,11 @@ class TestRun:
 		self.setup_widgets()
 
 	def setup_widgets(self):
-		l = ttk.Label(self.t, text="Test Run")
+		l = ttk.Label(self.t, text="Click below to launch a test run. Make sure you are logged into the Test Run account.")
 		b = ttk.Button(self.t, text="Go", command=self.test_run)
 
-		l.grid(row=0, column=0, padx=30, pady=10)
-		b.grid(row=1, column=0, padx=30, pady=10)
+		l.grid(row=0, column=0, padx=50, pady=10)
+		b.grid(row=1, column=0, padx=50, pady=10)
 
 	def initial_check(self):
 		login_details = Database("login_details.json")

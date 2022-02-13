@@ -4,22 +4,26 @@ from PIL import Image, ImageDraw, ImageFont
 
 font = ImageFont.truetype('files\\SourceHanSans-Normal.otf', 38)
 
-def list_to_image(lst):
-	"""Takes a list, prints each element onto a canvas, and copies end image to clipboard."""
+def list_to_image(lst, title=None, user_imgs=[]):
+	"""
+	Takes a list, prints each element onto a canvas, and copies end image to clipboard.
+	Optionally takes a title.
+	"""
 	def send_to_clipboard(clip_type, data):
 	    win32clipboard.OpenClipboard()
 	    win32clipboard.EmptyClipboard()
 	    win32clipboard.SetClipboardData(clip_type, data)
 	    win32clipboard.CloseClipboard()
 
-	num = len(lst)
-	lst.insert(0, f"Claimed {num} videos:")
+	if title:
+		lst.insert(0, title)
+
+	margin = 20
+	space = 10
 
 	temp_canvas = Image.new('RGB', (0, 0))
 	temp_draw = ImageDraw.Draw(temp_canvas)
 
-	margin = 20
-	space = 10
 	titles = []
 	widths = []
 	heights = []
@@ -30,11 +34,13 @@ def list_to_image(lst):
 		widths.append(w)
 		heights.append(h)
 
-	max_width = max(widths)
-	total_height = sum(heights)
+	if user_imgs:
+		canvas_w = max(widths) + 96 + 2 * margin
+		canvas_h = heights[0] + (len(titles)-1) * (96 + space) + 2 * margin
 
-	canvas_w = max_width + 2 * margin
-	canvas_h = total_height + 2 * margin + (len(titles) - 1) * space
+	else:
+		canvas_w = max(widths) + 2 * margin
+		canvas_h = sum(heights) + 2 * margin + (len(titles) - 1) * space
 
 	canvas = Image.new('RGB', (canvas_w, canvas_h), color="#FFFFFF")
 	draw = ImageDraw.Draw(canvas)
@@ -42,10 +48,22 @@ def list_to_image(lst):
 	x_coord = margin
 	y_coord = margin
 
-	for title, h in titles:
-		draw.text((x_coord, y_coord), title, font=font, fill="#000000")
-		y_coord += h
-		y_coord += space
+	if user_imgs:
+		for i, pair in enumerate(titles):
+			title = pair[0]
+			draw.text((x_coord, y_coord), title, font=font, fill="#000000")
+			if i == 0:
+				y_coord += h
+				y_coord += space
+			else:
+				canvas.paste(user_imgs[i-1], (x_coord + max(widths[1:]), y_coord))
+				y_coord += 96
+				y_coord += space
+	else:
+		for title, h in titles:
+			draw.text((x_coord, y_coord), title, font=font, fill="#000000")
+			y_coord += h
+			y_coord += space
 
 	output = BytesIO()
 	canvas.convert("RGB").save(output, "BMP")
