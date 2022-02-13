@@ -35,7 +35,10 @@ def list_to_image(lst, title=None, user_imgs=[]):
 		heights.append(h)
 
 	if user_imgs:
-		canvas_w = max(widths) + 96 + 2 * margin
+		if max(widths[1:]) + 96 < widths[0]:
+			canvas_w = max(widths) + 2 * margin
+		else:
+			canvas_w = max(widths[1:]) + 96 + 2 * margin
 		canvas_h = heights[0] + (len(titles)-1) * (96 + space) + 2 * margin
 
 	else:
