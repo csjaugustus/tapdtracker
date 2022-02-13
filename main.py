@@ -398,7 +398,7 @@ class App(ttk.Frame):
 						if commented:
 							for cw in ready:
 								cw.send(commented, 1, to_img_list=True, img_title=f"Did not claim the following {len(commented)} video(s) because someone else commented:", user_imgs=user_imgs)
-							output += f"\nMissed {len(commented)} videos."
+							output += f"\nMissed {len(commented)} video(s)."
 
 						if output:
 							self.output.set(output)
