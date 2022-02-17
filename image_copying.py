@@ -10,13 +10,18 @@ def list_to_image(lst, title=None, user_imgs=[]):
 	Optionally takes a title.
 	"""
 	def send_to_clipboard(clip_type, data):
-	    win32clipboard.OpenClipboard()
-	    win32clipboard.EmptyClipboard()
-	    win32clipboard.SetClipboardData(clip_type, data)
-	    win32clipboard.CloseClipboard()
+		win32clipboard.OpenClipboard()
+		win32clipboard.EmptyClipboard()
+		win32clipboard.SetClipboardData(clip_type, data)
+		win32clipboard.CloseClipboard()
+
+	converted_list = []
 
 	if title:
-		lst.insert(0, title)
+		converted_list.append(title)
+
+	for e in lst:
+		converted_list.append(e)
 
 	margin = 20
 	space = 10
@@ -28,7 +33,7 @@ def list_to_image(lst, title=None, user_imgs=[]):
 	widths = []
 	heights = []
 
-	for title in lst:
+	for title in converted_list:
 		w, h = temp_draw.textsize(title, font=font)
 		titles.append((title, h))
 		widths.append(w)

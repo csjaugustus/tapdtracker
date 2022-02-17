@@ -3,8 +3,9 @@ import numpy as np
 import pyautogui
 from random import choice
 from win32gui import GetForegroundWindow, GetWindowRect
+import time
 
-def detect_image(template_file_name, threshold = 0.8):
+def detect_image(template_file_name, threshold = 0.9):
 	ss = pyautogui.screenshot()
 	img_rgb = cv2.cvtColor(np.array(ss), cv2.COLOR_RGB2BGR)
 	img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
@@ -31,15 +32,33 @@ def crop_full(detected):
 	cropped = ss.crop((x_min-80, y_min-50, x_max+100, y_max+15))
 	return cropped
 
+def click_image(template_file_name, delay=None):
+	result = detect_image(template_file_name)
+	if not result:
+		if delay:
+			time.sleep(delay)
+			result = detect_image(template_file_name)
+			if not result:
+				print("No image detected.")
+				return
+		else:
+			print("No image detected.")
+			return
+	x1, x2, y1, y2 = result
+	center_x = (x1 + x2)/2
+	center_y = (y1 + y2)/2
+	pyautogui.moveTo(center_x, center_y)
+	pyautogui.click()
+
 def main():
-	result = detect_image("files\\1.png")
+	result = click_image("files\\1.png", delay=5)
 	# if result:
 	# 	print("yes")
 	# x1, x2, y1, y2 = result
 	# center_x = (x1 + x2)/2
 	# center_y = (y1 + y2)/2
 	# pyautogui.moveTo(center_x, center_y)
-	crop_full(result).save("cropped.png")
+	# # crop_full(result).save("cropped.png")
 
 if __name__ == "__main__":
 	main()

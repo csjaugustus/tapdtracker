@@ -328,19 +328,7 @@ class App(ttk.Frame):
 						t3 = datetime.datetime.now()
 						self.driver.maximize_window()
 
-						#auto claim
-						def add_comment():
-							pyautogui.moveTo(self.comment_x_coord, self.comment_y_coord)
-							pyautogui.click()
-							pyautogui.press("1")
-							pyautogui.press("enter")
-
-						def close_comment():
-							pyautogui.moveTo(self.close_x_coord, self.close_y_coord)
-							pyautogui.click()						
-
-						claimed_titles = ""
-						if self.keywords:
+						def get_to_click():
 							to_click = []
 							self.driver.switch_to.default_content()
 							sections = self.driver.find_elements(By.CLASS_NAME, "title-name")
@@ -362,29 +350,77 @@ class App(ttk.Frame):
 								in_second_half = sum(1 for i in indexes if i >= total_indexes/2)
 								if in_second_half > in_first_half:
 									to_click.reverse()
+							return to_click
 
+						#auto claim
+						def add_comment():
+							pyautogui.moveTo(self.comment_x_coord, self.comment_y_coord)
+							pyautogui.click()
+							pyautogui.press("1")
+							pyautogui.press("enter")
 
-							commented = []
+						def close_comment():
+							pyautogui.moveTo(self.close_x_coord, self.close_y_coord)
+							pyautogui.click()
+
+						#testing purposes
+						# def add_movie(name):
+						# 	try:
+						# 		add_button = WebDriverWait(self.driver, 10).until(
+						# 			EC.element_to_be_clickable((By.CLASS_NAME, "add-card-placeholder"))
+						# 		)
+						# 	finally:
+						# 		add_button.click()
+						# 	try:
+						# 		comment_box = WebDriverWait(self.driver, 10).until(
+						# 			EC.element_to_be_clickable((By.CLASS_NAME, "control-add-card"))
+						# 		)
+						# 	finally:
+						# 		comment_box.click()			
+						# 	pyperclip.copy(name)
+						# 	pyautogui.hotkey("ctrl", "v")
+						# 	pyautogui.press("enter")
+
+						timings = {}
+						loop_times = 0
+
+						if self.keywords:
+							missed = []
 							user_imgs = []
 							claimed = []
+							
+							while True:
+								to_click = get_to_click()
+								if all(e.text in claimed+missed for e in to_click) and len(to_click) == len(claimed)+len(missed):
+									break
+								elif claimed or missed:
+									to_click = [e for e in to_click if (e.text not in claimed and e.text not in missed)]
+									print(f"On loop {loop_times+1}, new videos: {', '.join(e.text for e in to_click)} were added.")
 
-							for e in to_click:
-								e.click()
-								try:
-									WebDriverWait(self.driver, 10).until(
-									EC.element_to_be_clickable((By.CLASS_NAME, "editor-area"))
-									)
-								finally:
-									result = detect_image("files\\1.png")
-									if result:
-										commented.append(e.text)
-										user_imgs.append(crop_full(result))
-									else:
-										add_comment()
-										claimed.append(e.text)
-									close_comment()
+								loop_times += 1
 
-							t4 = datetime.datetime.now()
+								for e in to_click:
+									e.click()
+									try:
+										WebDriverWait(self.driver, 10).until(
+										EC.element_to_be_clickable((By.CLASS_NAME, "editor-area"))
+										)
+									finally:
+										result = detect_image("files\\1.png")
+										if result:
+											missed.append(e.text)
+											user_imgs.append(crop_full(result))
+										else:
+											add_comment()
+											claimed.append(e.text)
+										close_comment()
+								
+								timings[loop_times] = datetime.datetime.now()
+
+								self.driver.refresh()
+
+							t4 = timings[loop_times]
+							print(f"Loops: {loop_times}")
 
 						self.output.set("TAPD has been updated!")
 						for cw in ready:
@@ -394,11 +430,11 @@ class App(ttk.Frame):
 						if claimed:
 							for cw in ready:
 								cw.send(claimed, 1, to_img_list=True, img_title=f"Claimed {len(claimed)} video(s):")
-							output = f"Detected update at {t3.strftime('%H:%M:%S')}hrs.\nClaimed {len(claimed)-1} video(s) in {round((t4-t3).total_seconds(), 2)}s.\n"
-						if commented:
+							output = f"Detected update at {t3.strftime('%H:%M:%S')}hrs.\nClaimed {len(claimed)} video(s) in {round((t4-t3).total_seconds(), 2)}s.\n"
+						if missed:
 							for cw in ready:
-								cw.send(commented, 1, to_img_list=True, img_title=f"Did not claim the following {len(commented)} video(s) because someone else commented:", user_imgs=user_imgs)
-							output += f"Missed {len(commented)-1} video(s)."
+								cw.send(missed, 1, to_img_list=True, img_title=f"Did not claim the following {len(missed)} video(s) because someone else commented:", user_imgs=user_imgs)
+							output += f"Missed {len(missed)} video(s)."
 
 						if output:
 							self.output.set(output)
@@ -1067,7 +1103,7 @@ class TestRun:
 		self.setup_widgets()
 
 	def setup_widgets(self):
-		l = ttk.Label(self.t, text="Click below to launch a test run. Make sure you are logged into the Test Run account.")
+		l = ttk.Label(self.t, text="Click below to launch a test run.\nMake sure you are logged into the Test Run account, and wait for program to run first.")
 		b = ttk.Button(self.t, text="Go", command=self.test_run)
 
 		l.grid(row=0, column=0, padx=50, pady=10)
