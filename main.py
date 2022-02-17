@@ -363,24 +363,6 @@ class App(ttk.Frame):
 							pyautogui.moveTo(self.close_x_coord, self.close_y_coord)
 							pyautogui.click()
 
-						#testing purposes
-						# def add_movie(name):
-						# 	try:
-						# 		add_button = WebDriverWait(self.driver, 10).until(
-						# 			EC.element_to_be_clickable((By.CLASS_NAME, "add-card-placeholder"))
-						# 		)
-						# 	finally:
-						# 		add_button.click()
-						# 	try:
-						# 		comment_box = WebDriverWait(self.driver, 10).until(
-						# 			EC.element_to_be_clickable((By.CLASS_NAME, "control-add-card"))
-						# 		)
-						# 	finally:
-						# 		comment_box.click()			
-						# 	pyperclip.copy(name)
-						# 	pyautogui.hotkey("ctrl", "v")
-						# 	pyautogui.press("enter")
-
 						timings = {}
 						loop_times = 0
 
