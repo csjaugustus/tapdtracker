@@ -392,7 +392,7 @@ class App(ttk.Frame):
 							
 							while True:
 								to_click = get_to_click()
-								if all(e.text in claimed+missed for e in to_click) and len(to_click) == len(claimed)+len(missed):
+								if all(e.text in claimed+missed for e in to_click) and len(to_click) <= len(claimed)+len(missed):
 									break
 								elif claimed or missed:
 									to_click = [e for e in to_click if (e.text not in claimed and e.text not in missed)]
