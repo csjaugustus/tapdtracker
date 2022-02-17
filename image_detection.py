@@ -52,12 +52,6 @@ def click_image(template_file_name, delay=None):
 
 def main():
 	result = click_image("files\\1.png", delay=5)
-	# if result:
-	# 	print("yes")
-	# x1, x2, y1, y2 = result
-	# center_x = (x1 + x2)/2
-	# center_y = (y1 + y2)/2
-	# pyautogui.moveTo(center_x, center_y)
 	# # crop_full(result).save("cropped.png")
 
 if __name__ == "__main__":
