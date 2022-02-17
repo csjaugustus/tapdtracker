@@ -18,7 +18,7 @@ import pyperclip
 from pynput import mouse
 import webbrowser
 from image_copying import list_to_image
-from image_detection import detect_image, crop_full
+from image_detection import detect_image, crop_full, click_image
 
 def login(url, driver, username, password):
 	"""Uses a driver to log onto a TAPD board."""
@@ -363,6 +363,25 @@ class App(ttk.Frame):
 							pyautogui.moveTo(self.close_x_coord, self.close_y_coord)
 							pyautogui.click()
 
+						#testing purposes
+						# def add_movie(name):
+						# 	try:
+						# 		add_button = WebDriverWait(self.driver, 10).until(
+						# 			EC.element_to_be_clickable((By.CLASS_NAME, "add-card-placeholder"))
+						# 		)
+						# 	finally:
+						# 		add_button.click()
+						# 	try:
+						# 		comment_box = WebDriverWait(self.driver, 10).until(
+						# 			EC.element_to_be_clickable((By.CLASS_NAME, "control-add-card"))
+						# 		)
+						# 	finally:
+						# 		comment_box.click()			
+						# 	pyperclip.copy(name)
+						# 	pyautogui.hotkey("ctrl", "v")
+						# 	pyautogui.press("enter")
+						# 	click_image("cancel.png")
+
 						timings = {}
 						loop_times = 0
 
@@ -398,8 +417,6 @@ class App(ttk.Frame):
 										close_comment()
 								
 								timings[loop_times] = datetime.datetime.now()
-
-								self.driver.refresh()
 
 							t4 = timings[loop_times]
 							print(f"Loops: {loop_times}")
