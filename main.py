@@ -19,6 +19,7 @@ from pynput import mouse
 import webbrowser
 from image_copying import list_to_image
 from image_detection import detect_image, crop_full, click_image
+from screen_record import start_record
 
 def login(url, driver, username, password):
 	"""Uses a driver to log onto a TAPD board."""
@@ -325,6 +326,7 @@ class App(ttk.Frame):
 						for cw in ready:
 							cw.send('UNCLAIMED VIDEOS HAVE BEEN CLEARED TO 0. STANDBY FOR UPDATE.', 3)
 					elif unclaimed_count > initial_count:
+						recorder = start_record()
 						t3 = datetime.datetime.now()
 						self.driver.maximize_window()
 
@@ -442,7 +444,9 @@ class App(ttk.Frame):
 						self.pb.stop()
 						self.status.set("Status: Program has finished.")
 
-						self.driver.maximize_window()
+						gw.getWindowsWithTitle(self.driver.title)[0].maximize()
+						recorder.stop()
+						print("stopped")
 						exit()
 					else:
 						initial_count = unclaimed_count
