@@ -417,6 +417,7 @@ class App(ttk.Frame):
 										close_comment()
 								
 								timings[loop_times] = datetime.datetime.now()
+								self.driver.refresh()
 
 							t4 = timings[loop_times]
 							print(f"Loops: {loop_times}")
