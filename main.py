@@ -1123,12 +1123,15 @@ class TestRun:
 		if not login_details.data or not login_details.data["Test Run"]["selected"]:
 			popupMessage("Error", "Test Run preset not created or not selected.", windowToClose=self.t)
 			return False
+		self.username = login_details.data['Test Run']['username']
+		self.password = login_details.data['Test Run']['password']
+		self.url = f"https://www.tapd.cn/{login_details.data['Test Run']['tapd_id']}"
 		return True
 
 	def test_run(self):
 		def run():
 			driver = webdriver.Chrome()
-			login("https://www.tapd.cn/64747886", driver, "15578073443", "antifuckingh4ck!")
+			login(self.url, driver, self.username, self.password)
 			driver.maximize_window()
 			try:
 				add_button = WebDriverWait(driver, 10).until(
