@@ -215,7 +215,7 @@ class App(ttk.Frame):
 		else:
 			self.keywords = self.auto_claim_info.data["keywords"]
 		self.negative_keywords = self.auto_claim_info.data["negative_keywords"]
-
+		self.claim_seq = self.auto_claim_info.data["claim_seq"]
 
 	def pin_window(self, event):
 		if not self.pin.get():
@@ -298,6 +298,7 @@ class App(ttk.Frame):
 					output += f"Windows ready: {', '.join(cw.title for cw in ready)}"
 				else:
 					output += msg
+				output += f"\nClaim sequence: {self.claim_seq}"
 				output += f"\nCurrent video count: {unclaimed_count}"
 				output += f"\nCurrent refresh delay: {round(latency, 2)}s"
 
@@ -330,7 +331,7 @@ class App(ttk.Frame):
 						t3 = datetime.datetime.now()
 						self.driver.maximize_window()
 
-						def get_to_click():
+						def get_to_click(claim_seq):
 							to_click = []
 							self.driver.switch_to.default_content()
 							sections = self.driver.find_elements(By.CLASS_NAME, "title-name")
@@ -341,6 +342,10 @@ class App(ttk.Frame):
 									total_indexes = len(found_elements)
 							if self.keywords == "all":
 								to_click = [e for e in found_elements if not any(nkw in e.text for nkw in self.negative_keywords)]
+								if claim_seq == "Bottom to Top":
+									to_click.reverse()
+								elif claim_seq == "Top to Bottom" or claim_seq == "Auto":
+									pass
 							else:
 								indexes = []
 								for e in found_elements:
@@ -348,10 +353,16 @@ class App(ttk.Frame):
 										to_click.append(e)
 										indx = found_elements.index(e)
 										indexes.append(indx)
-								in_first_half = sum(1 for i in indexes if i < total_indexes/2)
-								in_second_half = sum(1 for i in indexes if i >= total_indexes/2)
-								if in_second_half > in_first_half:
+								if claim_seq == "Auto": #auto determine sequence
+									in_first_half = sum(1 for i in indexes if i < total_indexes/2)
+									in_second_half = sum(1 for i in indexes if i >= total_indexes/2)
+									if in_second_half > in_first_half:
+										to_click.reverse()
+								elif claim_seq == "Bottom to Top":
 									to_click.reverse()
+								elif claim_seq == "Top to Bottom":
+									pass
+
 							return to_click
 
 						#auto claim
@@ -393,7 +404,7 @@ class App(ttk.Frame):
 							claimed = []
 							
 							while True:
-								to_click = get_to_click()
+								to_click = get_to_click(self.claim_seq)
 								if all(e.text in claimed+missed for e in to_click) and len(to_click) <= len(claimed)+len(missed):
 									break
 								elif claimed or missed:
@@ -446,7 +457,6 @@ class App(ttk.Frame):
 
 						gw.getWindowsWithTitle(self.driver.title)[0].maximize()
 						recorder.stop()
-						print("stopped")
 						exit()
 					else:
 						initial_count = unclaimed_count
@@ -905,8 +915,8 @@ class AutoClaim:
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
-		self.r1 = 4
-		self.r2 = 4
+		self.r1 = 5
+		self.r2 = 5
 		self.refs = {}
 		self.load()
 		self.setup_widgets()
@@ -917,17 +927,30 @@ class AutoClaim:
 		#initialize auto claim data if empty
 		if not self.auto_claim_info.data:
 			self.auto_claim_info.data = {
+			"claim_seq" : "Auto",
 			"all_state" : False,
 			"keywords" : [],
 			"negative_keywords" : [],
 			}
 			self.auto_claim_info.save()
 
+		self.claim_seq = self.auto_claim_info.data["claim_seq"]
 		self.all_state = self.auto_claim_info.data["all_state"]
 		self.keywords = self.auto_claim_info.data["keywords"]
 		self.negative_keywords = self.auto_claim_info.data["negative_keywords"]
 
 	def setup_widgets(self):
+		self.claim_seq_var = tk.StringVar(value=self.claim_seq)
+		seq_label = ttk.Label(self.t, text="Claim Sequence: ")
+		r1 = ttk.Radiobutton(self.t, text="Auto", variable=self.claim_seq_var, value="Auto", command=self.update_claim_seq)
+		r2 = ttk.Radiobutton(self.t, text="Top to Bottom", variable=self.claim_seq_var, value="Top to Bottom", command=self.update_claim_seq)
+		r3 = ttk.Radiobutton(self.t, text="Bottom to Top", variable=self.claim_seq_var, value="Bottom to Top", command=self.update_claim_seq)
+
+		seq_label.grid(row=0, column=0, padx=10, pady=10)
+		r1.grid(row=0, column=1)
+		r2.grid(row=0, column=2)
+		r3.grid(row=0, column=3)
+
 		self.pin_var = tk.BooleanVar(value=False)
 
 		self.pin_button = ttk.Checkbutton(self.t, text="Claim All", variable=self.pin_var, style="Switch.TCheckbutton")
@@ -937,10 +960,10 @@ class AutoClaim:
 
 		self.pin_button.bind("<Button-1>", self.toggle)
 
-		self.pin_button.grid(row=0, column=0, sticky=tk.E)
-		self.l1.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
-		self.e1.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
-		self.b1.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+		self.pin_button.grid(row=1, column=0, sticky=tk.E)
+		self.l1.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
+		self.e1.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+		self.b1.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
 
 		if self.keywords:
 			for kw in self.keywords:
@@ -962,9 +985,9 @@ class AutoClaim:
 		self.e2 = ttk.Entry(self.t, width=20)
 		self.b2 = ttk.Button(self.t, text="Add", command=self.add_nkw)
 
-		self.l2.grid(row=1, column=2, columnspan=2, padx=10, pady=10)
-		self.e2.grid(row=2, column=2, columnspan=2, padx=10, pady=10)
-		self.b2.grid(row=3, column=2, columnspan=2, padx=10, pady=10)
+		self.l2.grid(row=2, column=2, columnspan=2, padx=10, pady=10)
+		self.e2.grid(row=3, column=2, columnspan=2, padx=10, pady=10)
+		self.b2.grid(row=4, column=2, columnspan=2, padx=10, pady=10)
 
 		if self.negative_keywords:
 			for kw in self.negative_keywords:
@@ -992,6 +1015,11 @@ class AutoClaim:
 			self.all_state = True
 			self.auto_claim_info.data["all_state"] = True
 			self.auto_claim_info.save()
+
+	def update_claim_seq(self):
+		self.claim_seq = self.claim_seq_var.get()
+		self.auto_claim_info.data["claim_seq"] = self.claim_seq
+		self.auto_claim_info.save()
 
 	def toggle(self, event):
 		if not self.pin_var.get(): #state before press
