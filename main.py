@@ -331,7 +331,7 @@ class App(ttk.Frame):
 						t3 = datetime.datetime.now()
 						self.driver.maximize_window()
 
-						def get_to_click(claim_seq):
+						def get_to_click():
 							to_click = []
 							self.driver.switch_to.default_content()
 							sections = self.driver.find_elements(By.CLASS_NAME, "title-name")
@@ -342,9 +342,9 @@ class App(ttk.Frame):
 									total_indexes = len(found_elements)
 							if self.keywords == "all":
 								to_click = [e for e in found_elements if not any(nkw in e.text for nkw in self.negative_keywords)]
-								if claim_seq == "Bottom to Top":
+								if self.claim_seq == "Bottom to Top":
 									to_click.reverse()
-								elif claim_seq == "Top to Bottom" or claim_seq == "Auto":
+								elif self.claim_seq == "Top to Bottom" or self.claim_seq == "Auto":
 									pass
 							else:
 								indexes = []
@@ -353,14 +353,14 @@ class App(ttk.Frame):
 										to_click.append(e)
 										indx = found_elements.index(e)
 										indexes.append(indx)
-								if claim_seq == "Auto": #auto determine sequence
+								if self.claim_seq == "Auto": #auto determine sequence
 									in_first_half = sum(1 for i in indexes if i < total_indexes/2)
 									in_second_half = sum(1 for i in indexes if i >= total_indexes/2)
 									if in_second_half > in_first_half:
 										to_click.reverse()
-								elif claim_seq == "Bottom to Top":
+								elif self.claim_seq == "Bottom to Top":
 									to_click.reverse()
-								elif claim_seq == "Top to Bottom":
+								elif self.claim_seq == "Top to Bottom":
 									pass
 
 							return to_click
@@ -404,7 +404,7 @@ class App(ttk.Frame):
 							claimed = []
 							
 							while True:
-								to_click = get_to_click(self.claim_seq)
+								to_click = get_to_click()
 								if all(e.text in claimed+missed for e in to_click) and len(to_click) <= len(claimed)+len(missed):
 									break
 								elif claimed or missed:
