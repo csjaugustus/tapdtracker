@@ -298,7 +298,6 @@ class App(ttk.Frame):
 					output += f"Windows ready: {', '.join(cw.title for cw in ready)}"
 				else:
 					output += msg
-				output += f"\nClaim sequence: {self.claim_seq}"
 				output += f"\nCurrent video count: {unclaimed_count}"
 				output += f"\nCurrent refresh delay: {round(latency, 2)}s"
 
@@ -310,11 +309,13 @@ class App(ttk.Frame):
 				output += f"\nAverage refresh delay: {round(avg_lat, 2)}s\n"
 				if not self.keywords:
 					output += "\nAuto-claim off."
-				elif self.keywords == "all":
-					output += "\nWill auto-claim all videos."
 				else:
-					kws = ", ".join(kw for kw in self.keywords)
-					output += f"\nWill claim videos with keyword(s): {kws}"
+					output += f"\nClaim sequence: {self.claim_seq}"
+					if self.keywords == "all":
+						output += "\nWill auto-claim all videos."
+					else:
+						kws = ", ".join(kw for kw in self.keywords)
+						output += f"\nWill claim videos with keyword(s): {kws}"
 				if self.keywords and self.negative_keywords:
 					nkws = ", ".join(nkw for nkw in self.negative_keywords)
 					output += f"\nWill not claim videos with keyword(s): {nkws}"
