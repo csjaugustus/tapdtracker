@@ -117,6 +117,7 @@ class App(ttk.Frame):
 
 		#variables
 		self.pin = tk.BooleanVar(value=False)
+		self.shutdown_after_claim = tk.BooleanVar(value=False)
 		self.status = tk.StringVar(value="Status: Program not running.")
 		self.output = tk.StringVar(value="No output.")
 
@@ -181,6 +182,7 @@ class App(ttk.Frame):
 	def setup_widgets(self):
 		self.light_label = tk.Label(self, image=self.red_light)
 		self.pin_button = ttk.Checkbutton(self, text="Pin", variable=self.pin, style="Switch.TCheckbutton")
+		self.shutdown_button = ttk.Checkbutton(self, text="Shutdown After Claim", variable=self.shutdown_after_claim, style="Switch.TCheckbutton")
 		self.status_label = ttk.Label(self,textvariable=self.status)
 		self.output_label = ttk.Label(self, textvariable=self.output, borderwidth=10, relief="groove")
 		self.start_button = ttk.Button(self, text="Start", command=self.start)
@@ -190,9 +192,10 @@ class App(ttk.Frame):
 
 		self.light_label.grid(row=0, column=0, sticky=tk.W)
 		self.pin_button.grid(row=0, column=2, sticky=tk.E)
-		self.status_label.grid(row=1, column=0, columnspan=3, padx=20,pady=10)
-		self.output_label.grid(row=2, column=0, columnspan=3, padx=20, pady=10)
-		self.start_button.grid(row=4, column=0, columnspan=3, pady=10)
+		self.shutdown_button.grid(row=1, column=2, sticky=tk.E)
+		self.status_label.grid(row=2, column=0, columnspan=3, padx=20,pady=10)
+		self.output_label.grid(row=3, column=0, columnspan=3, padx=20, pady=10)
+		self.start_button.grid(row=5, column=0, columnspan=3, pady=10)
 
 	def update_to_send(self):
 		"""Updates send list during runtime."""
@@ -320,7 +323,7 @@ class App(ttk.Frame):
 					nkws = ", ".join(nkw for nkw in self.negative_keywords)
 					output += f"\nWill not claim videos with keyword(s): {nkws}"
 				self.output.set(output)
-				self.pb.grid(row=3, column=0, columnspan=3, pady=10)
+				self.pb.grid(row=4, column=0, columnspan=3, pady=10)
 				self.pb.start()
 
 				if unclaimed_count != initial_count:
@@ -458,7 +461,12 @@ class App(ttk.Frame):
 
 						gw.getWindowsWithTitle(self.driver.title)[0].maximize()
 						recorder.stop()
-						exit()
+						
+						if self.shutdown_after_claim.get():
+							time.sleep(10)
+							os.system("shutdown /s /t 1")
+						else:
+							exit()
 					else:
 						initial_count = unclaimed_count
 
@@ -1185,7 +1193,7 @@ class TestRun:
 def main():
 	root = tk.Tk()
 
-	root.title("TAPD Tracker")
+	root.title("TAPD Assistant")
 	root.resizable(False, False)
 	icon = tk.PhotoImage(file = "files\\tapdicon.png")
 	root.iconphoto(True, icon)
