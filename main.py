@@ -117,7 +117,6 @@ class App(ttk.Frame):
 
 		#variables
 		self.pin = tk.BooleanVar(value=False)
-		self.shutdown_after_claim = tk.BooleanVar(value=False)
 		self.status = tk.StringVar(value="Status: Program not running.")
 		self.output = tk.StringVar(value="No output.")
 
@@ -131,6 +130,7 @@ class App(ttk.Frame):
 		windows_info = Database("windows_info.json")
 		auto_claim_info = Database("auto_claim_info.json")
 		click_coords = Database("click_coords.json")
+		scheduled_shutdown_info = Database("scheduled_shutdown_info.json")
 
 		errors = []
 		if not login_details.data:
@@ -150,6 +150,12 @@ class App(ttk.Frame):
 		else:
 			if not click_coords.data:
 				errors.append("Please input click coords for auto claim.")
+		if not scheduled_shutdown_info.data:
+			scheduled_shutdown_info = {
+			"shutdown_after_claim" : False,
+			"shutdown_time" : ","
+			}
+			scheduled_shutdown_info.save()
 
 		if errors:
 			popupMessage("Error(s)", "\n\n".join(e for e in errors))
@@ -165,6 +171,8 @@ class App(ttk.Frame):
 		self.comment_y_coord = click_coords.data['comment_y_coord']
 		self.close_x_coord = click_coords.data['close_x_coord']
 		self.close_y_coord = click_coords.data['close_y_coord']
+		self.shutdown_after_claim = scheduled_shutdown_info.data['shutdown_after_claim']
+		self.shutdown_time = scheduled_shutdown_info.data['shutdown_time']
 		return True
 
 	def start(self):
@@ -182,7 +190,7 @@ class App(ttk.Frame):
 	def setup_widgets(self):
 		self.light_label = tk.Label(self, image=self.red_light)
 		self.pin_button = ttk.Checkbutton(self, text="Pin", variable=self.pin, style="Switch.TCheckbutton")
-		self.shutdown_button = ttk.Checkbutton(self, text="Shutdown After Claim", variable=self.shutdown_after_claim, style="Switch.TCheckbutton")
+		
 		self.status_label = ttk.Label(self,textvariable=self.status)
 		self.output_label = ttk.Label(self, textvariable=self.output, borderwidth=10, relief="groove")
 		self.start_button = ttk.Button(self, text="Start", command=self.start)
@@ -192,10 +200,10 @@ class App(ttk.Frame):
 
 		self.light_label.grid(row=0, column=0, sticky=tk.W)
 		self.pin_button.grid(row=0, column=2, sticky=tk.E)
-		self.shutdown_button.grid(row=1, column=2, sticky=tk.E)
-		self.status_label.grid(row=2, column=0, columnspan=3, padx=20,pady=10)
-		self.output_label.grid(row=3, column=0, columnspan=3, padx=20, pady=10)
-		self.start_button.grid(row=5, column=0, columnspan=3, pady=10)
+		
+		self.status_label.grid(row=1, column=0, columnspan=3, padx=20,pady=10)
+		self.output_label.grid(row=2, column=0, columnspan=3, padx=20, pady=10)
+		self.start_button.grid(row=4, column=0, columnspan=3, pady=10)
 
 	def update_to_send(self):
 		"""Updates send list during runtime."""
@@ -265,6 +273,12 @@ class App(ttk.Frame):
 		latencies = []
 
 		while True:
+			if self.shutdown_time:
+				target_time = datetime.time(hour=self.shutdown_time)
+				now_time = datetime.datetime.now().time()
+				if now_time >= target_time:
+					os.system("shutdown /s /t 1")
+
 			try:
 				WebDriverWait(self.driver, 10).until(
 					EC.presence_of_element_located((By.CLASS_NAME, "list-count"))
@@ -323,7 +337,7 @@ class App(ttk.Frame):
 					nkws = ", ".join(nkw for nkw in self.negative_keywords)
 					output += f"\nWill not claim videos with keyword(s): {nkws}"
 				self.output.set(output)
-				self.pb.grid(row=4, column=0, columnspan=3, pady=10)
+				self.pb.grid(row=3, column=0, columnspan=3, pady=10)
 				self.pb.start()
 
 				if unclaimed_count != initial_count:
@@ -462,7 +476,7 @@ class App(ttk.Frame):
 						gw.getWindowsWithTitle(self.driver.title)[0].maximize()
 						recorder.stop()
 						
-						if self.shutdown_after_claim.get():
+						if self.shutdown_after_claim:
 							time.sleep(10)
 							os.system("shutdown /s /t 1")
 						else:
@@ -853,71 +867,6 @@ class SendMessageLocations:
 			self.x_entry.delete(0, 'end')
 			self.y_entry.delete(0, 'end')
 
-class ManualSend:
-	"""
-	Manually sends a given message to activated windows for a certain number of times.
-	Mainly for testing purposes.
-	"""
-
-	def __init__(self):
-		self.t = tk.Toplevel()
-		self.t.resizable(False, False)
-		self.setup_widgets()
-
-	def setup_widgets(self):
-		self.l1 = ttk.Label(self.t, text="Text: ")
-		self.tb = tk.Text(self.t, width=30, height=5)
-		self.l2 = ttk.Label(self.t, text="Times to send: ")
-		self.e = ttk.Entry(self.t, width=10)
-		b = ttk.Button(self.t, text="Send", command=self.send)
-
-		self.l1.grid(row=0, column=0, padx=10, pady=10)
-		self.tb.grid(row=0, column=1, padx=10, pady=10)
-		self.l2.grid(row=1, column=0, padx=10, pady=10)
-		self.e.grid(row=1, column=1, padx=10, pady=10, sticky=tk.W)
-		b.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
-
-	def load(self):
-		self.ready = []
-		windows_info = Database("windows_info.json")
-		for name, attrs in windows_info.data.items():
-			activated = attrs['activated']
-			if activated:
-				coords = attrs['coords']
-				cw = ChatWindow(name, coords)
-				cw.update_status()
-				if cw.open:
-					self.ready.append(cw)
-
-	def send(self):
-		if not (self.tb.get("1.0", "end") and self.e.get()):
-			popupMessage("Error", "Please input all fields.")
-			return
-
-		def cfm_send():
-			text = self.tb.get("1.0", "end")
-			times = int(self.e.get())
-			for cw in self.ready:
-				cw.send(text, times)
-			self.tb.delete("1.0", "end")
-			self.e.delete(0, "end")
-
-		self.load()
-		names = '\n'.join(wn.title for wn in self.ready)
-		if names:
-			cfm = tk.Toplevel()
-			cfm.resizable(False, False)
-			cfm.title("Confirmation")
-			l = ttk.Label(cfm, text=f"Text will be sent to the following windows:\n{names}")
-			y = ttk.Button(cfm, text="Yes", command=cfm_send)
-			n = ttk.Button(cfm, text="No", command=cfm.destroy)
-
-			l.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
-			y.grid(row=1, column=0, padx=10, pady=10)
-			n.grid(row=1, column=1, padx=10, pady=10)
-		else:
-			popupMessage("Error", "No target window found. Activate at least one window.")
-
 class AutoClaim:
 	"""Sets keywords for videos to automatically claim/not to claim."""
 
@@ -1190,6 +1139,52 @@ class TestRun:
 			t.start()
 			self.t.destroy()
 
+class ScheduledShutdown:
+	def __init__(self):
+		self.t = tk.Toplevel()
+		self.t.resizable(False, False)
+		self.setup_widgets()
+		self.load()
+
+	def setup_widgets(self):
+		self.shutdown_after_claim = tk.BooleanVar(value=False)
+		self.shutdown_button = ttk.Checkbutton(self.t, text="Shutdown After Claim", variable=self.shutdown_after_claim, style="Switch.TCheckbutton", command=self.save_cb)
+		self.l = ttk.Label(self.t, text="Shutdown Time (Hour Only)")
+		self.e = ttk.Entry(self.t, width=10)
+		self.b = ttk.Button(self.t, text="Save", command=self.save)
+
+		self.shutdown_button.grid(row=0, column=0)
+		self.l.grid(row=1, column=0)
+		self.e.grid(row=1, column=1)
+		self.b.grid(row=2, column=0, columnspan=2)
+
+	def load(self):
+		self.scheduled_shutdown_info = Database("scheduled_shutdown_info.json")
+		if not self.scheduled_shutdown_info.data:
+			self.scheduled_shutdown_info.data = {
+			"shutdown_after_claim" : False,
+			"shutdown_time" : "",
+			}
+			self.scheduled_shutdown_info.save()
+
+		else:
+			self.shutdown_after_claim.set(self.scheduled_shutdown_info.data["shutdown_after_claim"])
+			self.shutdown_time = self.scheduled_shutdown_info.data["shutdown_time"]
+			if self.shutdown_time:
+				self.e.insert(0, self.shutdown_time)
+
+	def save_cb(self):
+		self.scheduled_shutdown_info.data["shutdown_after_claim"] = self.shutdown_after_claim.get()
+		self.scheduled_shutdown_info.save()
+
+	def save(self):
+		if self.e.get():
+			self.scheduled_shutdown_info.data["shutdown_time"] = int(self.e.get())
+		else:
+			self.scheduled_shutdown_info.data["shutdown_time"] = ""
+		self.scheduled_shutdown_info.save()
+		popupMessage("Successful", "Saved.", windowToClose=self.t)
+
 def main():
 	root = tk.Tk()
 
@@ -1208,10 +1203,10 @@ def main():
 	main_menu.add_cascade(label="Settings", menu=settings_menu)
 	settings_menu.add_command(label="Change Login Details", command=LoginDetails)
 	settings_menu.add_command(label="Manage Send Message Locations", command=SendMessageLocations)
-	settings_menu.add_command(label="Manual Send", command=ManualSend)
 	settings_menu.add_command(label="Auto Claim", command=AutoClaim)
 	settings_menu.add_command(label="Click Coords", command=ClickCoords)
 	settings_menu.add_command(label="Test Run", command=TestRun)
+	settings_menu.add_command(label="Scheduled Shutdown", command=ScheduledShutdown)
 	settings_menu.add_command(label="About", command=About)
 
 	root.update()
