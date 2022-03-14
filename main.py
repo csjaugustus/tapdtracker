@@ -228,6 +228,12 @@ class App(ttk.Frame):
 		self.negative_keywords = self.auto_claim_info.data["negative_keywords"]
 		self.claim_seq = self.auto_claim_info.data["claim_seq"]
 
+	def update_scheduled_shutdown(self):
+		"""Updates scheduled shutdown settings during runtime."""
+		scheduled_shutdown_info = Database("scheduled_shutdown_info.json")
+		self.shutdown_after_claim = scheduled_shutdown_info.data['shutdown_after_claim']
+		self.shutdown_time = scheduled_shutdown_info.data['shutdown_time']
+
 	def pin_window(self, event):
 		if not self.pin.get():
 			self.parent.attributes("-topmost", True)
@@ -290,6 +296,7 @@ class App(ttk.Frame):
 				#get latest send list and keyword list
 				self.update_to_send()
 				self.update_kw_list()
+				self.update_scheduled_shutdown()
 
 				#check which ones are still open
 				for cw in self.to_send:
@@ -336,6 +343,11 @@ class App(ttk.Frame):
 				if self.keywords and self.negative_keywords:
 					nkws = ", ".join(nkw for nkw in self.negative_keywords)
 					output += f"\nWill not claim videos with keyword(s): {nkws}"
+				output += f"\n\nShutdown After Claiming: {self.shutdown_after_claim}"
+				if self.shutdown_time:
+					output += f"\nScheduled shutdown at {self.shutdown_time} hrs."
+				else:
+					output += f"\nNo scheduled shutdown."
 				self.output.set(output)
 				self.pb.grid(row=3, column=0, columnspan=3, pady=10)
 				self.pb.start()
