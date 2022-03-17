@@ -151,7 +151,7 @@ class App(ttk.Frame):
 			if not click_coords.data:
 				errors.append("Please input click coords for auto claim.")
 		if not scheduled_shutdown_info.data:
-			scheduled_shutdown_info = {
+			scheduled_shutdown_info.data = {
 			"shutdown_after_claim" : False,
 			"shutdown_time" : ","
 			}
