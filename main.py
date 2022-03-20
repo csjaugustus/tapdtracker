@@ -153,7 +153,7 @@ class App(ttk.Frame):
 		if not scheduled_shutdown_info.data:
 			scheduled_shutdown_info.data = {
 			"shutdown_after_claim" : False,
-			"shutdown_time" : ","
+			"shutdown_time" : "",
 			}
 			scheduled_shutdown_info.save()
 
