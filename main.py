@@ -38,8 +38,8 @@ def login(url, driver, username, password):
 
 def popupMessage(title, message, windowToClose=None):
 	"""
-	Sends a popup message. 
-	By default, acknowledging the popup message only closes the popup message itself. 
+	Sends a popup message.
+	By default, acknowledging the popup message only closes the popup message itself.
 	But you can pass in what other windows to close too.
 	For a fatal error that should close all windows, pass in 'all'.
 	"""
@@ -185,12 +185,12 @@ class App(ttk.Frame):
 		self.red_light = ImageTk.PhotoImage(self.red_light)
 		self.green_light = Image.open("files\\greenlight.png")
 		self.green_light = self.green_light.resize((20, 20))
-		self.green_light = ImageTk.PhotoImage(self.green_light)		
+		self.green_light = ImageTk.PhotoImage(self.green_light)
 
 	def setup_widgets(self):
 		self.light_label = tk.Label(self, image=self.red_light)
 		self.pin_button = ttk.Checkbutton(self, text="Pin", variable=self.pin, style="Switch.TCheckbutton")
-		
+
 		self.status_label = ttk.Label(self,textvariable=self.status)
 		self.output_label = ttk.Label(self, textvariable=self.output, borderwidth=10, relief="groove")
 		self.start_button = ttk.Button(self, text="Start", command=self.start)
@@ -200,7 +200,7 @@ class App(ttk.Frame):
 
 		self.light_label.grid(row=0, column=0, sticky=tk.W)
 		self.pin_button.grid(row=0, column=2, sticky=tk.E)
-		
+
 		self.status_label.grid(row=1, column=0, columnspan=3, padx=20,pady=10)
 		self.output_label.grid(row=2, column=0, columnspan=3, padx=20, pady=10)
 		self.start_button.grid(row=4, column=0, columnspan=3, pady=10)
@@ -259,7 +259,16 @@ class App(ttk.Frame):
 		self.start_button.config(state=tk.DISABLED)
 		self.output.set("Logging in...")
 
-		self.driver = webdriver.Chrome()
+		try:
+			self.driver = webdriver.Chrome()
+		except Exception as e:
+			versions_info = "\n".join(str(e).split("\n")[:2])
+			versions_info += "\n\n"
+			versions_info += f"Please get the correct version of chromedriver at the following site:\nhttps://chromedriver.chromium.org/downloads\nLink copied to clipboard."
+			pyperclip.copy("https://chromedriver.chromium.org/downloads")
+			popupMessage("Chromedriver version outdated.", versions_info)
+			exit()
+
 		self.driver.minimize_window()
 		login(self.url, self.driver, self.username, self.password)
 		self.output.set("Logged in.")
@@ -272,7 +281,7 @@ class App(ttk.Frame):
 		finally:
 			list_count_el = self.driver.find_element(By.CLASS_NAME, 'list-count')
 			initial_count = get_count(list_count_el.text)
-		
+
 		t1 = 0
 		t2 = 0
 		latency = 0
@@ -419,7 +428,7 @@ class App(ttk.Frame):
 						# 			EC.element_to_be_clickable((By.CLASS_NAME, "control-add-card"))
 						# 		)
 						# 	finally:
-						# 		comment_box.click()			
+						# 		comment_box.click()
 						# 	pyperclip.copy(name)
 						# 	pyautogui.hotkey("ctrl", "v")
 						# 	pyautogui.press("enter")
@@ -432,7 +441,7 @@ class App(ttk.Frame):
 							missed = []
 							user_imgs = []
 							claimed = []
-							
+
 							while True:
 								to_click = get_to_click()
 								if all(e.text in claimed+missed for e in to_click) and len(to_click) <= len(claimed)+len(missed):
@@ -458,7 +467,7 @@ class App(ttk.Frame):
 											add_comment()
 											claimed.append(e.text)
 										close_comment()
-								
+
 								timings[loop_times] = datetime.datetime.now()
 								self.driver.refresh()
 
@@ -487,7 +496,7 @@ class App(ttk.Frame):
 
 						gw.getWindowsWithTitle(self.driver.title)[0].maximize()
 						recorder.stop()
-						
+
 						if self.shutdown_after_claim:
 							time.sleep(10)
 							os.system("shutdown /s /t 1")
@@ -587,7 +596,7 @@ class LoginDetails:
 		preset_label.grid(row=1, column=0, padx=10, pady=10)
 		self.preset_entry.grid(row=1, column=1, padx=10, pady=10)
 		username_label.grid(row=2, column=0, padx=10, pady=10)
-		self.username_entry.grid(row=2, column=1, padx=10, pady=10)		
+		self.username_entry.grid(row=2, column=1, padx=10, pady=10)
 		password_label.grid(row=3, column=0, padx=10, pady=10)
 		self.password_entry.grid(row=3, column=1, padx=10, pady=10)
 		id_label.grid(row=4, column=0, padx=10, pady=10)
@@ -699,7 +708,7 @@ class ClickCoords:
 					y_entry.delete(0, tk.END)
 				x_entry.insert(0, x)
 				y_entry.insert(0, y)
-				return False 
+				return False
 
 		listener = mouse.Listener(on_click=on_click)
 		listener.start()
@@ -736,7 +745,7 @@ class ClickCoords:
 			self.click_coords.data["close_y_coord"] = close_y_coord
 			self.click_coords.save()
 			popupMessage("Successful", "Close box coords saved.")
-			
+
 class SendMessageLocations:
 	"""Manages where update messages are sent."""
 
@@ -807,7 +816,7 @@ class SendMessageLocations:
 						y_entry.delete(0, tk.END)
 					x_entry.insert(0, x)
 					y_entry.insert(0, y)
-					return False 
+					return False
 
 			listener = mouse.Listener(on_click=on_click)
 			listener.start()
@@ -977,7 +986,7 @@ class AutoClaim:
 
 		if self.all_state:
 			self.pin_var.set(True)
-			
+
 			self.e.config(state=tk.DISABLED)
 			self.b.config(state=tk.DISABLED)
 			for kw in self.keywords:
@@ -1040,7 +1049,7 @@ class AutoClaim:
 		"kw_label" : kw_label,
 		"del_button" : del_button,
 		}
-		
+
 		kw_label.grid(row=self.r1, column=0, padx=10, pady=10, stick=tk.W)
 		del_button.grid(row=self.r1, column=1, padx=10, pady=10, stick=tk.E)
 		self.r1 += 1
@@ -1069,7 +1078,7 @@ class AutoClaim:
 		"kw_label" : kw_label,
 		"del_button" : del_button,
 		}
-		
+
 		kw_label.grid(row=self.r2, column=2, padx=10, pady=10, stick=tk.W)
 		del_button.grid(row=self.r2, column=3, padx=10, pady=10, stick=tk.E)
 		self.r2 += 1
@@ -1098,7 +1107,7 @@ class About:
 
 class TestRun:
 	"""Automatically does a test run on Test Run preset."""
-	
+
 	def __init__(self):
 		self.t = tk.Toplevel()
 		self.t.resizable(False, False)
@@ -1142,7 +1151,7 @@ class TestRun:
 					EC.element_to_be_clickable((By.CLASS_NAME, "control-add-card"))
 				)
 			finally:
-				comment_box.click()			
+				comment_box.click()
 			pyautogui.write("Test Movie Name")
 			pyautogui.press("enter")
 
